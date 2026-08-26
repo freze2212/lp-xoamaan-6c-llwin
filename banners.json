@@ -1,0 +1,164 @@
+{
+  "banners": [
+    {
+      "id": 1,
+      "imageUrl": "/uploads/banner_1773924084584_dded26c768daf8.png",
+      "locked": false,
+      "sortOrder": 0,
+      "createdAt": "2026-03-19T07:41:48.000Z",
+      "updatedAt": "2026-07-19T05:15:14.000Z"
+    },
+    {
+      "id": 2,
+      "imageUrl": "/uploads/banner_1773906314787_f3e8171ec5347.jpg",
+      "locked": true,
+      "sortOrder": 0,
+      "createdAt": "2026-03-19T07:45:14.000Z",
+      "updatedAt": "2026-04-15T15:24:45.000Z"
+    },
+    {
+      "id": 3,
+      "imageUrl": "/uploads/banner_1773906318979_ccb97ad68e11b8.jpg",
+      "locked": true,
+      "sortOrder": 0,
+      "createdAt": "2026-03-19T07:45:18.000Z",
+      "updatedAt": "2026-04-15T16:31:14.000Z"
+    },
+    {
+      "id": 4,
+      "imageUrl": "/uploads/banner_1773906324232_93aa07f91227a8.jpg",
+      "locked": true,
+      "sortOrder": 0,
+      "createdAt": "2026-03-19T07:45:24.000Z",
+      "updatedAt": "2026-05-20T11:42:39.000Z"
+    },
+    {
+      "id": 5,
+      "imageUrl": "/uploads/banner_1773906332137_0b4fd85fb41e58.jpg",
+      "locked": true,
+      "sortOrder": 0,
+      "createdAt": "2026-03-19T07:45:32.000Z",
+      "updatedAt": "2026-04-15T16:31:14.000Z"
+    },
+    {
+      "id": 6,
+      "imageUrl": "/uploads/banner_1773906339139_eb13fcf760af58.jpg",
+      "locked": true,
+      "sortOrder": 0,
+      "createdAt": "2026-03-19T07:45:39.000Z",
+      "updatedAt": "2026-04-15T06:52:03.000Z"
+    },
+    {
+      "id": 7,
+      "imageUrl": "/uploads/banner_1773906358105_28851b626d8ec.jpg",
+      "locked": true,
+      "sortOrder": 0,
+      "createdAt": "2026-03-19T07:45:58.000Z",
+      "updatedAt": "2026-04-15T16:31:13.000Z"
+    },
+    {
+      "id": 8,
+      "imageUrl": "/uploads/banner_1773906362659_71c2f0848b2228.jpg",
+      "locked": true,
+      "sortOrder": 0,
+      "createdAt": "2026-03-19T07:46:02.000Z",
+      "updatedAt": "2026-04-15T13:50:38.000Z"
+    },
+    {
+      "id": 9,
+      "imageUrl": "/uploads/banner_1773906367573_5ef63401a66398.jpg",
+      "locked": true,
+      "sortOrder": 0,
+      "createdAt": "2026-03-19T07:46:07.000Z",
+      "updatedAt": "2026-04-15T13:27:00.000Z"
+    },
+    {
+      "id": 10,
+      "imageUrl": "/uploads/banner_1773906372145_61fe1823cd6e98.jpg",
+      "locked": true,
+      "sortOrder": 0,
+      "createdAt": "2026-03-19T07:46:12.000Z",
+      "updatedAt": "2026-04-15T13:50:37.000Z"
+    },
+    {
+      "id": 11,
+      "imageUrl": "/uploads/banner_1773906376446_4f2e92ce92e17.jpg",
+      "locked": true,
+      "sortOrder": 0,
+      "createdAt": "2026-03-19T07:46:16.000Z",
+      "updatedAt": "2026-04-07T14:01:10.000Z"
+    },
+    {
+      "id": 12,
+      "imageUrl": "/uploads/banner_1773906381933_31871f2d6143.jpg",
+      "locked": true,
+      "sortOrder": 0,
+      "createdAt": "2026-03-19T07:46:21.000Z",
+      "updatedAt": "2026-04-07T14:01:09.000Z"
+    },
+    {
+      "id": 13,
+      "imageUrl": "/uploads/banner_1773906390099_1a15a41d957878.jpg",
+      "locked": true,
+      "sortOrder": 0,
+      "createdAt": "2026-03-19T07:46:30.000Z",
+      "updatedAt": "2026-05-31T20:23:36.000Z"
+    },
+    {
+      "id": 14,
+      "imageUrl": "/uploads/banner_1773906394528_37edc35a3a517.jpg",
+      "locked": true,
+      "sortOrder": 0,
+      "createdAt": "2026-03-19T07:46:34.000Z",
+      "updatedAt": "2026-04-07T14:01:07.000Z"
+    },
+    {
+      "id": 15,
+      "imageUrl": "/uploads/banner_1773906399832_911653aa1cfe28.jpg",
+      "locked": true,
+      "sortOrder": 0,
+      "createdAt": "2026-03-19T07:46:39.000Z",
+      "updatedAt": "2026-04-09T08:05:55.000Z"
+    },
+    {
+      "id": 16,
+      "imageUrl": "/uploads/banner_1773924094727_4592176cbb5d08.png",
+      "locked": true,
+      "sortOrder": 0,
+      "createdAt": "2026-03-19T07:46:43.000Z",
+      "updatedAt": "2026-04-07T14:01:06.000Z"
+    },
+    {
+      "id": 17,
+      "imageUrl": "/uploads/banner_1776080887386_2e9aa3bee15fe.png",
+      "locked": true,
+      "sortOrder": 0,
+      "createdAt": "2026-04-13T11:48:07.000Z",
+      "updatedAt": "2026-04-13T11:48:07.000Z"
+    },
+    {
+      "id": 18,
+      "imageUrl": "/uploads/banner_1776080923155_6079d0bfb603d.jpg",
+      "locked": true,
+      "sortOrder": 0,
+      "createdAt": "2026-04-13T11:48:43.000Z",
+      "updatedAt": "2026-04-15T13:50:36.000Z"
+    },
+    {
+      "id": 19,
+      "imageUrl": "/uploads/banner_1776081025615_058179e62818c8.png",
+      "locked": true,
+      "sortOrder": 0,
+      "createdAt": "2026-04-13T11:50:25.000Z",
+      "updatedAt": "2026-04-15T13:27:06.000Z"
+    },
+    {
+      "id": 20,
+      "imageUrl": "/uploads/banner_1776081187310_2f343203c75cf.jpg",
+      "locked": true,
+      "sortOrder": 0,
+      "createdAt": "2026-04-13T11:53:07.000Z",
+      "updatedAt": "2026-04-15T13:29:17.000Z"
+    }
+  ]
+}

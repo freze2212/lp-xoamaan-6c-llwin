@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tool Xoá Mã Ẩn Nhà Cái | Kích Hoạt RTP & Tắt Theo Dõi IP</title>
+  <meta name="description" content="Công cụ xoá mã ẩn nhà cái, tắt theo dõi IP, kích hoạt chế độ Max Win, Big Win, Scatter và loại bỏ soi BCR." />
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="./uploads/banner_llwin.svg" />
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="./assets/css/style.css" />
+</head>
+<body>
+
+  <div class="app">
+    <!-- Floating Admin Button -->
+    <a href="./admin.html" style="position: fixed; top: 12px; right: 12px; z-index: 999; background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; text-decoration: none; font-size: 0.82rem; font-weight: 800; padding: 6px 14px; border-radius: 999px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); display: flex; align-items: center; gap: 6px; border: 1px solid rgba(255,255,255,0.2);">
+      <span>🔐</span>
+      <span>Admin Cấp Mã</span>
+    </a>
+
+    <!-- Background Video -->
+    <video class="video-background" autoplay loop playsinline muted>
+      <source src="./assets/video_background.mp4" type="video/mp4" />
+    </video>
+
+    <!-- Visual Overlays -->
+    <div class="yellow-overlay"></div>
+
+    <!-- Main Content Container -->
+    <div class="app-content">
+      <main class="app-main">
+        
+        <!-- Top Security Info Bar -->
+        <div class="security-warning">
+          <span class="security-info-label">🌐 IP:</span>
+          <span id="user-ip" class="security-info-value security-info-danger">Đang quét...</span>
+          <span class="security-info-separator">•</span>
+          
+          <span class="security-info-label">📱 Thiết bị:</span>
+          <span id="user-device" class="security-info-value">Desktop</span>
+          <span class="security-info-separator">•</span>
+          
+          <span class="security-info-label">💻 OS:</span>
+          <span id="user-os" class="security-info-value">Windows</span>
+          <span class="security-info-separator">•</span>
+          
+          <span class="security-info-label">🔍 Trình duyệt:</span>
+          <span id="user-browser" class="security-info-value">Chrome</span>
+          <span class="security-info-separator">•</span>
+          
+          <span class="security-info-license">
+            <a href="https://t.me/thosantp79" target="_blank" rel="noopener noreferrer">
+              License: by <strong>@thosantp79</strong>
+            </a>
+          </span>
+          <span class="security-info-separator">•</span>
+          
+          <!-- Admin Access Quick Link -->
+          <a href="./admin.html" style="color: #34d399; text-decoration: none; font-weight: 700; background: rgba(16, 185, 129, 0.2); padding: 2px 10px; border-radius: 999px; border: 1px solid rgba(16, 185, 129, 0.4); transition: all 0.2s;">
+            🔐 Trang Quản Trị
+          </a>
+        </div>
+
+        <!-- Main Code Manager Box -->
+        <div class="code-manager">
+          <!-- Title Section -->
+          <div class="hacker-header-title">
+            <h1 class="glitch-title" data-text="[ TOOL XOÁ MÃ ẨN ]">[ TOOL XOÁ MÃ ẨN ]</h1>
+          </div>
+
+          <!-- Feature Description Lines -->
+          <div class="code-manager-title">
+            <p class="code-manager-title-line">✅ Tắt chế độ theo dõi tài khoản và IP từ trang game</p>
+            <p class="code-manager-title-line">✅ Kích hoạt, tối đa chế độ BIGWIN, SCATTER cho game nổ hũ</p>
+            <p class="code-manager-title-line">✅ Loại bỏ soi BCR, tối đa tỉ lệ thắng</p>
+          </div>
+
+          <!-- Input Action Form -->
+          <div class="code-manager-fields">
+            <div class="input-action-row">
+              <div class="form-group">
+                <input 
+                  id="username-input" 
+                  type="text" 
+                  class="code-input" 
+                  placeholder="Nhập tên tài khoản game..." 
+                  autocomplete="username" 
+                />
+              </div>
+              <button type="button" id="btn-delete-code" class="btn-delete-code">
+                ⚡ Xoá mã ẩn
+              </button>
+              <button type="button" id="btn-chuyen-xau" class="btn-delete-code" style="background: linear-gradient(135deg, #10b981, #059669);">
+                🛡️ Xoá chuyên sâu
+              </button>
+            </div>
+          </div>
+
+          <!-- Bookmakers Grid -->
+          <div id="banners-grid" class="code-manager-grid" aria-label="Danh sách nhà cái">
+            <!-- Rendered dynamically by JavaScript (LLWIN #1 first) -->
+          </div>
+
+        </div>
+
+      </main>
+
+      <!-- Footer with Admin Shortcut -->
+      <footer style="margin-top: 1.5rem; text-align: center; font-size: 0.8rem; color: #64748b;">
+        <span>© 2026 Xoá Mã Nhà Cái System • </span>
+        <a href="/admin.html" style="color: #10b981; text-decoration: none; font-weight: 600;">Trang Quản Trị Admin</a>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Hacker Scanning Overlay -->
+  <div id="hacker-overlay" class="hacker-overlay" style="display: none;" role="dialog" aria-modal="true">
+    <div class="hacker-terminal">
+      <div class="hacker-header">
+        <span class="glitch" data-text="SYSTEM ACCESS :: CORE SCAN">SYSTEM ACCESS :: CORE SCAN</span>
+        <span style="font-size: 0.8rem; color: #10b981; font-family: var(--font-mono);">ENCRYPTED V4.2</span>
+      </div>
+      <div class="hacker-progress">
+        <div class="hacker-progress-bar-wrap">
+          <div id="hacker-progress-bar" class="hacker-progress-bar"></div>
+        </div>
+        <div id="hacker-progress-text" class="hacker-progress-text">0%</div>
+      </div>
+      <div id="hacker-body" class="hacker-body"></div>
+    </div>
+  </div>
+
+  <!-- Security Code Prompt Modal -->
+  <div id="code-modal-overlay" class="result-modal-overlay" style="display: none;" role="dialog" aria-modal="true">
+    <div class="result-modal">
+      <div class="result-status" style="color: #38bdf8;">
+        🔑 Nhập Code Xác Thực
+      </div>
+      <div class="result-text" style="margin-bottom: 1rem;">
+        Vui lòng nhập mã code hợp lệ được cấp từ Admin để tiến hành xoá mã ẩn. Mỗi mã code chỉ dùng được <strong>1 lần duy nhất</strong>.
+      </div>
+      
+      <input 
+        id="code-input" 
+        type="text" 
+        class="code-input" 
+        placeholder="Nhập mã code tại đây..." 
+        autocomplete="off"
+        style="margin-bottom: 0.75rem; text-transform: uppercase; font-family: var(--font-mono); font-weight: 700; letter-spacing: 1px;"
+      />
+
+      <div id="code-modal-error" style="color: #f87171; font-size: 0.88rem; margin-bottom: 0.85rem; display: none; font-weight: 600; background: rgba(239, 68, 68, 0.15); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.3);"></div>
+
+      <div style="display: flex; gap: 0.75rem;">
+        <button type="button" id="btn-cancel-code" class="btn-close btn-modal-cancel">
+          Huỷ Bỏ
+        </button>
+        <button type="button" id="btn-submit-code" class="btn-close btn-modal-confirm">
+          Xác Nhận & Quét
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Result Status Modal -->
+  <div id="result-modal-overlay" class="result-modal-overlay" style="display: none;" role="dialog" aria-modal="true">
+    <div id="result-modal-card" class="result-modal">
+      <div id="result-title" class="result-status"></div>
+      <div id="result-text" class="result-text"></div>
+      
+      <!-- Action buttons (e.g. LLWIN direct play or Telegram support) -->
+      <div id="result-action-area"></div>
+
+      <button type="button" id="btn-close-result" class="btn-close btn-modal-cancel" style="width: 100%;">
+        Đóng Cửa Sổ
+      </button>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/assets/js/db.js"></script>
+  <script src="/assets/js/app.js"></script>
+</body>
+</html>
