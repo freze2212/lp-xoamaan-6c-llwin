@@ -114,13 +114,25 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   }
 
+  let lastRenderedBannersJson = '';
+
   function renderBanners() {
     const banners = window.db.getBanners();
+    const currentJson = JSON.stringify(banners);
+
+    // Skip re-rendering if data is identical (Anti-Flicker)
+    if (currentJson === lastRenderedBannersJson && bannersGrid.children.length > 0) {
+      updateActiveBannerSelection();
+      return;
+    }
+
+    lastRenderedBannersJson = currentJson;
     bannersGrid.innerHTML = '';
 
     banners.forEach((banner) => {
       const button = document.createElement('button');
       button.type = 'button';
+      button.dataset.bannerId = banner.id;
       const isLlwin = banner.id === 'llwin';
       const isActive = selectedHouseId === banner.id;
 
@@ -128,19 +140,29 @@ document.addEventListener('DOMContentLoaded', () => {
       button.setAttribute('aria-label', banner.name || `Banner ${banner.id}`);
       button.title = `${banner.name || 'Nhà cái'} ${isLlwin ? '(Khuyên dùng - LLWIN)' : ''}`;
 
-      // Handle image path
-      const imgSrc = banner.imageUrl.startsWith('http') ? banner.imageUrl : banner.imageUrl;
+      const imgSrc = banner.imageUrl || './uploads/banner_llwin.svg';
 
       button.innerHTML = `
-        <img class="grid-item-image" src="${imgSrc}" alt="${banner.name || 'Banner'}" onerror="this.src='/uploads/banner_llwin.svg'" />
+        <img class="grid-item-image" src="${imgSrc}" alt="${banner.name || 'Banner'}" />
       `;
 
       button.addEventListener('click', () => {
         selectedHouseId = banner.id;
-        renderBanners();
+        updateActiveBannerSelection();
       });
 
       bannersGrid.appendChild(button);
+    });
+  }
+
+  function updateActiveBannerSelection() {
+    const buttons = bannersGrid.querySelectorAll('.grid-item');
+    buttons.forEach((btn) => {
+      if (btn.dataset.bannerId === selectedHouseId) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
     });
   }
 

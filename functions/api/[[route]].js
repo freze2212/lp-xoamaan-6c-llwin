@@ -2,22 +2,36 @@
 // Handles /api/data, /api/codes/consume, /api/sync, etc. natively on Cloudflare Pages (*.pages.dev)
 
 const INITIAL_BANNERS = [
-  { id: '1', name: 'LLWIN', imageUrl: './uploads/banner_1773924084584_dded26c768daf8.png', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 1 },
-  { id: '2', name: 'Nhà cái #2', imageUrl: './uploads/banner_1773906314787_f3e8171ec5347.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: true, sortOrder: 2 },
-  { id: '3', name: 'Nhà cái #3', imageUrl: './uploads/banner_1773906318979_ccb97ad68e11b8.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: true, sortOrder: 3 },
-  { id: '4', name: 'Nhà cái #4', imageUrl: './uploads/banner_1773906324232_93aa07f91227a8.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: true, sortOrder: 4 },
-  { id: '5', name: 'Nhà cái #5', imageUrl: './uploads/banner_1773906332137_0b4fd85fb41e58.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: true, sortOrder: 5 },
-  { id: '6', name: 'Nhà cái #6', imageUrl: './uploads/banner_1773906336336_bfa4dbce56be38.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 6 },
-  { id: '7', name: 'Nhà cái #7', imageUrl: './uploads/banner_1773906342898_6fa33c6ce09608.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 7 },
-  { id: '8', name: 'Nhà cái #8', imageUrl: './uploads/banner_1773906352924_6fe235832ea528.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 8 },
-  { id: '9', name: 'Nhà cái #9', imageUrl: './uploads/banner_1773906359570_f50389f41712a8.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 9 },
-  { id: '10', name: 'Nhà cái #10', imageUrl: './uploads/banner_1773906368412_0c3b88bcfba588.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 10 },
-  { id: '11', name: 'Nhà cái #11', imageUrl: './uploads/banner_1773906374032_b841e4aaeb3f78.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 11 },
-  { id: '12', name: 'Nhà cái #12', imageUrl: './uploads/banner_1773906381279_61183aa2cead68.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 12 },
-  { id: '13', name: 'Nhà cái #13', imageUrl: './uploads/banner_1773906386923_ea4a070ebafb38.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 13 },
-  { id: '14', name: 'Nhà cái #14', imageUrl: './uploads/banner_1773906392094_5c2196ea85ff78.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 14 },
-  { id: '15', name: 'Nhà cái #15', imageUrl: './uploads/banner_1773906399832_911653aa1cfe28.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 15 },
-  { id: '16', name: 'Nhà cái #16', imageUrl: './uploads/banner_1773924094727_4592176cbb5d08.png', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 16 }
+  {
+    id: 'llwin',
+    name: 'LLwin',
+    imageUrl: './uploads/banner_llwin.svg',
+    link: 'https://www.07llwin.com/?id=832516623',
+    locked: false,
+    isHot: true,
+    sortOrder: 1,
+    description: 'Trang chủ nhà cái LLwin chính thức'
+  },
+  { id: '1', name: 'Nhà cái #1', imageUrl: './uploads/banner_1773924084584_dded26c768daf8.png', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 2 },
+  { id: '2', name: 'Nhà cái #2', imageUrl: './uploads/banner_1773906314787_f3e8171ec5347.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 3 },
+  { id: '3', name: 'Nhà cái #3', imageUrl: './uploads/banner_1773906318979_ccb97ad68e11b8.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 4 },
+  { id: '4', name: 'Nhà cái #4', imageUrl: './uploads/banner_1773906324232_93aa07f91227a8.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 5 },
+  { id: '5', name: 'Nhà cái #5', imageUrl: './uploads/banner_1773906332137_0b4fd85fb41e58.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 6 },
+  { id: '6', name: 'Nhà cái #6', imageUrl: './uploads/banner_1773906339139_eb13fcf760af58.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 7 },
+  { id: '7', name: 'Nhà cái #7', imageUrl: './uploads/banner_1773906358105_28851b626d8ec.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 8 },
+  { id: '8', name: 'Nhà cái #8', imageUrl: './uploads/banner_1773906362659_71c2f0848b2228.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 9 },
+  { id: '9', name: 'Nhà cái #9', imageUrl: './uploads/banner_1773906367573_5ef63401a66398.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 10 },
+  { id: '10', name: 'Nhà cái #10', imageUrl: './uploads/banner_1773906372145_61fe1823cd6e98.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 11 },
+  { id: '11', name: 'Nhà cái #11', imageUrl: './uploads/banner_1773906376446_4f2e92ce92e17.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 12 },
+  { id: '12', name: 'Nhà cái #12', imageUrl: './uploads/banner_1773906381933_31871f2d6143.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 13 },
+  { id: '13', name: 'Nhà cái #13', imageUrl: './uploads/banner_1773906390099_1a15a41d957878.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 14 },
+  { id: '14', name: 'Nhà cái #14', imageUrl: './uploads/banner_1773906394528_37edc35a3a517.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 15 },
+  { id: '15', name: 'Nhà cái #15', imageUrl: './uploads/banner_1773906399832_911653aa1cfe28.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 16 },
+  { id: '16', name: 'Nhà cái #16', imageUrl: './uploads/banner_1773924094727_4592176cbb5d08.png', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 17 },
+  { id: '17', name: 'Nhà cái #17', imageUrl: './uploads/banner_1776080887386_2e9aa3bee15fe.png', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 18 },
+  { id: '18', name: 'Nhà cái #18', imageUrl: './uploads/banner_1776080923155_6079d0bfb603d.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 19 },
+  { id: '19', name: 'Nhà cái #19', imageUrl: './uploads/banner_1776081025615_058179e62818c8.png', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 20 },
+  { id: '20', name: 'Nhà cái #20', imageUrl: './uploads/banner_1776081187310_2f343203c75cf.jpg', link: 'https://www.07llwin.com/?id=832516623', locked: false, sortOrder: 21 }
 ];
 
 const INITIAL_CODES = [
