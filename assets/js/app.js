@@ -2,7 +2,7 @@
  * Main Landing Page Logic for Tool Xoá Mã Nhà Cái
  */
 
-document.addEventListener('DOMContentLoaded', () => {
+function initLandingApp() {
   // State variables
   let selectedHouseId = 'llwin';
   let isScanning = false;
@@ -43,7 +43,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // 1. Detect Client Environment
   detectClientInfo();
 
-  // 2. Render Banners with LLWIN first
+  // 2. Attach events to static HTML grid buttons immediately
+  attachGridEvents();
+
+  // 3. Render Banners from DB if available
   renderBanners();
 
   // Listen to DB updates
@@ -51,32 +54,67 @@ document.addEventListener('DOMContentLoaded', () => {
     renderBanners();
   });
 
-  // 3. Setup Button Event Listeners
-  btnDeleteCode.addEventListener('click', () => {
-    handleOpenCodePrompt('delete');
-  });
+  // 4. Setup Button Event Listeners (support both click and touch)
+  if (btnDeleteCode) {
+    btnDeleteCode.addEventListener('click', (e) => {
+      e.preventDefault();
+      handleOpenCodePrompt('delete');
+    });
+  }
 
-  btnChuyenXau.addEventListener('click', () => {
-    handleOpenCodePrompt('chuyenXau');
-  });
+  if (btnChuyenXau) {
+    btnChuyenXau.addEventListener('click', (e) => {
+      e.preventDefault();
+      handleOpenCodePrompt('chuyenXau');
+    });
+  }
 
-  btnCancelCode.addEventListener('click', () => {
-    closeCodeModal();
-  });
+  if (btnCancelCode) {
+    btnCancelCode.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeCodeModal();
+    });
+  }
 
-  btnSubmitCode.addEventListener('click', () => {
-    handleVerifyAndRun();
-  });
-
-  codeInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
+  if (btnSubmitCode) {
+    btnSubmitCode.addEventListener('click', (e) => {
+      e.preventDefault();
       handleVerifyAndRun();
-    }
-  });
+    });
+  }
 
-  btnCloseResult.addEventListener('click', () => {
-    resultModalOverlay.style.display = 'none';
-  });
+  if (codeInput) {
+    codeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleVerifyAndRun();
+      }
+    });
+  }
+
+  if (btnCloseResult) {
+    btnCloseResult.addEventListener('click', (e) => {
+      e.preventDefault();
+      resultModalOverlay.style.display = 'none';
+    });
+  }
+
+  // Close modal when clicking overlay background
+  if (codeModalOverlay) {
+    codeModalOverlay.addEventListener('click', (e) => {
+      if (e.target === codeModalOverlay) {
+        closeCodeModal();
+      }
+    });
+  }
+
+  if (resultModalOverlay) {
+    resultModalOverlay.addEventListener('click', (e) => {
+      if (e.target === resultModalOverlay) {
+        resultModalOverlay.style.display = 'none';
+      }
+    });
+  }
 
   // --- FUNCTIONS ---
 
@@ -185,16 +223,22 @@ document.addEventListener('DOMContentLoaded', () => {
   function handleOpenCodePrompt(actionType) {
     if (isScanning) return;
 
-    const username = usernameInput.value.trim();
+    const username = usernameInput ? usernameInput.value.trim() : '';
     if (!username) {
-      alert('Vui lòng nhập tên tài khoản game cần xoá mã!');
       usernameInput.focus();
+      usernameInput.style.borderColor = '#ef4444';
+      usernameInput.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.4)';
+      setTimeout(() => {
+        usernameInput.style.borderColor = '';
+        usernameInput.style.boxShadow = '';
+      }, 1800);
+      alert('Vui lòng nhập tên tài khoản game cần xoá mã!');
       return;
     }
 
     if (!selectedHouseId) {
-      alert('Vui lòng chọn nhà cái trong danh sách phía dưới!');
-      return;
+      selectedHouseId = 'llwin';
+      updateActiveBannerSelection();
     }
 
     currentActionType = actionType;
@@ -202,7 +246,9 @@ document.addEventListener('DOMContentLoaded', () => {
     codeModalError.style.display = 'none';
     codeModalError.textContent = '';
     codeModalOverlay.style.display = 'flex';
-    codeInput.focus();
+    setTimeout(() => {
+      codeInput.focus();
+    }, 100);
   }
 
   function closeCodeModal() {
@@ -382,4 +428,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
-});
+}
+
+// Ensure execution whether DOM is loading or already loaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initLandingApp);
+} else {
+  initLandingApp();
+}
