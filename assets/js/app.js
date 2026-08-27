@@ -54,10 +54,11 @@ function initLandingApp() {
     renderBanners();
   });
 
-  // 4. Setup Button Event Listeners (support both click and touch)
+  // 4. Setup Button Event Listeners
   if (btnDeleteCode) {
     btnDeleteCode.addEventListener('click', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       handleOpenCodePrompt('delete');
     });
   }
@@ -65,6 +66,7 @@ function initLandingApp() {
   if (btnChuyenXau) {
     btnChuyenXau.addEventListener('click', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       handleOpenCodePrompt('chuyenXau');
     });
   }
@@ -72,6 +74,7 @@ function initLandingApp() {
   if (btnCancelCode) {
     btnCancelCode.addEventListener('click', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       closeCodeModal();
     });
   }
@@ -79,6 +82,7 @@ function initLandingApp() {
   if (btnSubmitCode) {
     btnSubmitCode.addEventListener('click', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       handleVerifyAndRun();
     });
   }
@@ -87,6 +91,7 @@ function initLandingApp() {
     codeInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
+        e.stopPropagation();
         handleVerifyAndRun();
       }
     });
@@ -95,24 +100,8 @@ function initLandingApp() {
   if (btnCloseResult) {
     btnCloseResult.addEventListener('click', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       resultModalOverlay.style.display = 'none';
-    });
-  }
-
-  // Close modal when clicking overlay background
-  if (codeModalOverlay) {
-    codeModalOverlay.addEventListener('click', (e) => {
-      if (e.target === codeModalOverlay) {
-        closeCodeModal();
-      }
-    });
-  }
-
-  if (resultModalOverlay) {
-    resultModalOverlay.addEventListener('click', (e) => {
-      if (e.target === resultModalOverlay) {
-        resultModalOverlay.style.display = 'none';
-      }
     });
   }
 
