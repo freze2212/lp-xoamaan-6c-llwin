@@ -123,12 +123,21 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   }
 
+  let lastRenderedBannersJson = '';
+
   function renderBanners() {
     let banners = window.db.getBanners();
     if (!Array.isArray(banners) || banners.length === 0) {
       banners = INITIAL_BANNERS;
     }
 
+    const currentJson = JSON.stringify(banners);
+    if (currentJson === lastRenderedBannersJson && bannersGrid.children.length > 0) {
+      updateActiveBannerSelection();
+      return;
+    }
+
+    lastRenderedBannersJson = currentJson;
     bannersGrid.innerHTML = '';
 
     banners.forEach((banner) => {

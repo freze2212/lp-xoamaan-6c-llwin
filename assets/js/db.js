@@ -141,24 +141,43 @@ class LocalDB {
 
   async fetchFromServer() {
     try {
-      const json = await this.requestApi('/data', 'GET');
-      if (json && json.success) {
-        if (Array.isArray(json.codes)) {
-          localStorage.setItem(DB_KEYS.CODES, JSON.stringify(json.codes));
+      const res = await fetch('/api/data', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      let hasChanged = false;
+
+      if (data && data.banners && Array.isArray(data.banners) && data.banners.length > 0) {
+        const currentBanners = localStorage.getItem(DB_KEYS.BANNERS);
+        const newBannersStr = JSON.stringify(data.banners);
+        if (currentBanners !== newBannersStr) {
+          localStorage.setItem(DB_KEYS.BANNERS, newBannersStr);
+          hasChanged = true;
         }
-        if (Array.isArray(json.banners)) {
-          localStorage.setItem(DB_KEYS.BANNERS, JSON.stringify(json.banners));
+      }
+
+      if (data && data.codes && Array.isArray(data.codes)) {
+        const currentCodes = localStorage.getItem(DB_KEYS.CODES);
+        const newCodesStr = JSON.stringify(data.codes);
+        if (currentCodes !== newCodesStr) {
+          localStorage.setItem(DB_KEYS.CODES, newCodesStr);
+          hasChanged = true;
         }
-        if (json.config) {
-          localStorage.setItem(DB_KEYS.APP_CONFIG, JSON.stringify(json.config));
+      }
+
+      if (data && data.config) {
+        const currentConf = localStorage.getItem(DB_KEYS.APP_CONFIG);
+        const newConfStr = JSON.stringify(data.config);
+        if (currentConf !== newConfStr) {
+          localStorage.setItem(DB_KEYS.APP_CONFIG, newConfStr);
+          hasChanged = true;
         }
-        if (json.adminCreds) {
-          localStorage.setItem(DB_KEYS.ADMIN_CREDS, JSON.stringify(json.adminCreds));
-        }
+      }
+
+      if (hasChanged) {
         this.notifyUpdate();
       }
     } catch (e) {
-      // Fallback to local
+      // ignore
     }
   }
 

@@ -1394,28 +1394,52 @@ body {
 }
 
 /* ========================================================
-   RESPONSIVE DESIGN
+   RESPONSIVE DESIGN (MOBILE & PC)
    ======================================================== */
 @media (max-width: 768px) {
   .app {
-    padding: 0.5rem;
+    padding: 0.4rem;
   }
   .code-manager {
-    padding: 1.25rem;
+    padding: 1rem 0.75rem;
     border-radius: 18px;
   }
   .glitch-title {
-    font-size: 1.45rem;
+    font-size: 1.35rem;
+    letter-spacing: 1px;
+  }
+  .code-manager-title {
+    padding: 0.6rem 0.85rem;
+    margin-bottom: 1rem;
+  }
+  .code-manager-title-line {
+    font-size: 0.78rem;
+  }
+  .code-manager-fields {
+    margin-bottom: 1rem;
   }
   .input-action-row {
-    flex-direction: column;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .input-action-row .form-group {
+    flex: 1 1 100%;
   }
   .btn-delete-code {
-    width: 100%;
+    flex: 1 1 calc(50% - 0.25rem);
+    min-height: 44px;
+    font-size: 0.85rem;
+    padding: 0 0.75rem;
   }
   .code-manager-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.6rem;
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+  .grid-item {
+    border-radius: 12px !important;
+    padding: 4px !important;
   }
   .admin-header {
     padding: 0.75rem 1rem;
@@ -1432,7 +1456,8 @@ body {
     grid-template-columns: 1fr;
   }
   .security-warning {
-    font-size: 0.72rem;
-    padding: 0.4rem 0.85rem;
+    font-size: 0.68rem;
+    padding: 0.35rem 0.65rem;
+    gap: 0.35rem 0.5rem;
   }
 }
