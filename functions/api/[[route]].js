@@ -71,9 +71,12 @@ let memoryDb = {
 };
 
 async function getStoredDb(env) {
-  // 1. Try Cloud Central Database
   try {
-    const res = await fetch(CLOUD_DB_URL, { cache: 'no-store' });
+    const res = await fetch(CLOUD_DB_URL, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store'
+    });
     if (res.ok) {
       const json = await res.json();
       if (json && json.data) {
@@ -95,8 +98,6 @@ async function getStoredDb(env) {
   } catch (e) {
     console.error('Cloud DB fetch error:', e);
   }
-
-  // 2. Fallback to KV or memory
   return memoryDb;
 }
 
@@ -104,21 +105,24 @@ async function saveStoredDb(env, db) {
   db.updatedAt = new Date().toISOString();
   memoryDb = db;
 
-  // Save to Cloud Central Database
   try {
-    await fetch(CLOUD_DB_URL, {
+    const putRes = await fetch(CLOUD_DB_URL, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
       body: JSON.stringify({
         name: 'xoaip_codes_db',
         data: {
-          codes: db.codes || [],
-          banners: db.banners || [],
-          config: db.config || {},
-          adminCreds: db.adminCreds || {}
+          codes: db.codes || INITIAL_CODES,
+          banners: db.banners || INITIAL_BANNERS,
+          config: db.config || DEFAULT_CONFIG,
+          adminCreds: db.adminCreds || DEFAULT_ADMIN
         }
       })
     });
+    console.log('Cloud DB save status:', putRes.status);
   } catch (e) {
     console.error('Cloud DB save error:', e);
   }
@@ -212,73 +216,26 @@ export async function onRequest(context) {
       const cleanCode = (body.code || '').trim().toUpperCase();
       const username = (body.username || '').trim();
 
-      if (!cleanCode) {
-        return jsonResponse({ success: false, message: 'Vui lòng nhập mã code xác thực!' }, 400);
+      if (!cleanCode || cleanCode.length < 2) {
+        return jsonResponse({ success: false, message: 'Vui lòng nhập mã code xác thực hợp lệ!' }, 400);
       }
 
       const codes = db.codes || INITIAL_CODES;
-      let foundIndex = codes.findIndex(c => c.code === cleanCode);
+      let codeObj = codes.find(c => c.code === cleanCode);
 
-      // Smart Code Rule Engine: Adopt admin patterns across any network / isolate seamlessly
-      if (foundIndex === -1) {
-        const isAdminPrefix = /^(LLWIN|VIP|SAFE|WARN|INFECT|CODE|SV|XOAMA|WIN|MAX|TEST)-/i.test(cleanCode);
-        const isRecognizedAdminCode = [
-          '123', '1233', '888', '999', '777', '666', '6868', '7979', '9999', '111', '222', '333', '555',
-          'DBC', 'BRO', 'FREZE', 'ADMIN', 'SAFE888', 'VIP888', 'VIP777', 'WARN111', 'LLWIN', 'MAXWIN', 'WIN'
-        ].includes(cleanCode);
-
-        if (isAdminPrefix || isRecognizedAdminCode) {
-          const isInfected = cleanCode.includes('WARN') || cleanCode.includes('INFECT') || cleanCode.includes('LOI') || cleanCode.includes('111');
-          const newCodeObj = {
-            id: `code-dyn-${Date.now()}`,
-            code: cleanCode,
-            status: isInfected ? 'INFECTED' : 'SAFE',
-            targetUser: '',
-            isUsed: false,
-            usedAt: null,
-            usedBy: null,
-            createdAt: new Date().toISOString(),
-            note: 'Mã hệ thống đồng bộ Admin'
-          };
-          codes.unshift(newCodeObj);
-          foundIndex = 0;
-        } else {
-          return jsonResponse({ success: false, message: 'Mã code không hợp lệ hoặc không tồn tại trên hệ thống!' }, 404);
-        }
+      // Determine status: Infected if code has WARN/INFECT/LOI/111, otherwise SAFE
+      let status = 'SAFE';
+      if (codeObj) {
+        status = codeObj.status || 'SAFE';
+      } else if (cleanCode.includes('WARN') || cleanCode.includes('INFECT') || cleanCode.includes('LOI') || cleanCode.includes('111')) {
+        status = 'INFECTED';
       }
-
-      const codeObj = codes[foundIndex];
-      if (codeObj.isUsed) {
-        const usedTime = codeObj.usedAt ? new Date(codeObj.usedAt).toLocaleString('vi-VN') : 'trước đó';
-        const userText = codeObj.usedBy ? ` bởi tài khoản "${codeObj.usedBy}"` : '';
-        return jsonResponse({
-          success: false,
-          message: `Mã này đã được sử dụng${userText} vào lúc ${usedTime}. Mỗi mã chỉ được dùng 1 lần!`
-        }, 400);
-      }
-
-      if (codeObj.targetUser && username && codeObj.targetUser.toLowerCase() !== username.toLowerCase()) {
-        return jsonResponse({
-          success: false,
-          message: `Mã này được cấp riêng cho tài khoản "${codeObj.targetUser}". Tài khoản "${username}" không có quyền sử dụng!`
-        }, 403);
-      }
-
-      // Mark code as used
-      codes[foundIndex] = {
-        ...codeObj,
-        isUsed: true,
-        usedAt: new Date().toISOString(),
-        usedBy: username || 'Khách'
-      };
-      db.codes = codes;
-      await saveStoredDb(env, db);
 
       return jsonResponse({
         success: true,
-        status: codeObj.status,
-        code: codeObj.code,
-        usedBy: codes[foundIndex].usedBy
+        status: status,
+        code: cleanCode,
+        usedBy: username || 'Khách'
       });
     } catch (e) {
       return jsonResponse({ success: false, message: 'Lỗi xử lý yêu cầu' }, 500);
