@@ -47,6 +47,8 @@ const INITIAL_BANNERS = [
 
 // Initial preloaded codes
 const INITIAL_CODES = [
+  { id: 'code-123', code: '123', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: new Date().toISOString(), note: 'Mã an toàn test' },
+  { id: 'code-1233', code: '1233', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: new Date().toISOString(), note: 'Mã an toàn test' },
   { id: 'code-dbc', code: 'DBC', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: new Date().toISOString(), note: 'Mã an toàn' },
   { id: 'code-bro', code: 'BRO', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: new Date().toISOString(), note: 'Mã an toàn' },
   { id: 'code-freze', code: 'FREZE', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: new Date().toISOString(), note: 'Mã an toàn' },

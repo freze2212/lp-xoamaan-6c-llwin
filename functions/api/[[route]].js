@@ -21,6 +21,8 @@ const INITIAL_BANNERS = [
 ];
 
 const INITIAL_CODES = [
+  { id: 'code-123', code: '123', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: '2026-08-27T00:00:00.000Z', note: 'Mã an toàn test' },
+  { id: 'code-1233', code: '1233', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: '2026-08-27T00:00:00.000Z', note: 'Mã an toàn test' },
   { id: 'code-dbc', code: 'DBC', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: '2026-08-27T00:00:00.000Z', note: 'Mã an toàn' },
   { id: 'code-bro', code: 'BRO', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: '2026-08-27T00:00:00.000Z', note: 'Mã an toàn' },
   { id: 'code-freze', code: 'FREZE', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: '2026-08-27T00:00:00.000Z', note: 'Mã an toàn' },
@@ -54,12 +56,13 @@ let memoryDb = {
 
 function findKv(env) {
   if (!env || typeof env !== 'object') return null;
-  if (env.XOAMA_KV && typeof env.XOAMA_KV.get === 'function') return env.XOAMA_KV;
-  if (env.KV && typeof env.KV.get === 'function') return env.KV;
-  if (env.DB && typeof env.DB.get === 'function') return env.DB;
-  if (env.XOAMA && typeof env.XOAMA.get === 'function') return env.XOAMA;
+  const ignore = new Set(['ASSETS', 'CF_PAGES', 'CF_PAGES_BRANCH', 'CF_PAGES_COMMIT_SHA', 'CF_PAGES_URL', 'ENVIRONMENT']);
+  if (env.XOAMA_KV && typeof env.XOAMA_KV.get === 'function' && typeof env.XOAMA_KV.put === 'function') return env.XOAMA_KV;
+  if (env.KV && typeof env.KV.get === 'function' && typeof env.KV.put === 'function') return env.KV;
+  if (env.DB && typeof env.DB.get === 'function' && typeof env.DB.put === 'function') return env.DB;
+  if (env.XOAMA && typeof env.XOAMA.get === 'function' && typeof env.XOAMA.put === 'function') return env.XOAMA;
   for (const key of Object.keys(env)) {
-    if (env[key] && typeof env[key].get === 'function' && typeof env[key].put === 'function') {
+    if (!ignore.has(key) && env[key] && typeof env[key].get === 'function' && typeof env[key].put === 'function') {
       return env[key];
     }
   }
