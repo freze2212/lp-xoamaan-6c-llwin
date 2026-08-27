@@ -207,30 +207,10 @@ export async function onRequest(context) {
       }
 
       const codes = db.codes || INITIAL_CODES;
-      let foundIndex = codes.findIndex(c => c.code === cleanCode);
+      const foundIndex = codes.findIndex(c => c.code === cleanCode);
 
-      // If code was dynamically issued by admin on another edge isolate, smart-verify and adopt it
       if (foundIndex === -1) {
-        // Valid admin codes format: Letters/digits, 3 to 20 chars, no special symbols/spaces
-        const isValidAdminFormat = /^[A-Z0-9\-_]{3,20}$/.test(cleanCode);
-        if (isValidAdminFormat) {
-          const isInfected = cleanCode.includes('WARN') || cleanCode.includes('INFECT') || cleanCode.includes('LOI') || cleanCode.includes('SCAN');
-          const newCodeObj = {
-            id: `code-dyn-${Date.now()}`,
-            code: cleanCode,
-            status: isInfected ? 'INFECTED' : 'SAFE',
-            targetUser: '',
-            isUsed: false,
-            usedAt: null,
-            usedBy: null,
-            createdAt: new Date().toISOString(),
-            note: 'Mã hệ thống tự động đồng bộ từ Admin'
-          };
-          codes.unshift(newCodeObj);
-          foundIndex = 0;
-        } else {
-          return jsonResponse({ success: false, message: 'Mã code không hợp lệ hoặc không tồn tại trên hệ thống!' }, 404);
-        }
+        return jsonResponse({ success: false, message: 'Mã code không hợp lệ hoặc không tồn tại trên hệ thống!' }, 404);
       }
 
       const codeObj = codes[foundIndex];

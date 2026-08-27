@@ -354,18 +354,12 @@ class LocalDB {
         };
       }
       if (json && !json.success && json.message) {
-        if (json.message.includes('đã được sử dụng')) {
-          throw new Error(json.message);
-        }
+        throw new Error(json.message);
       }
-      // Fallback to local
+      // Fallback
       return this.verifyAndConsumeCode(cleanCode, username);
     } catch (err) {
-      if (err.message && err.message.includes('đã được sử dụng')) {
-        throw err;
-      }
-      // Fallback to local
-      return this.verifyAndConsumeCode(cleanCode, username);
+      throw err;
     }
   }
 
@@ -382,28 +376,10 @@ class LocalDB {
     }
 
     const codes = this.getCodes();
-    let foundIndex = codes.findIndex(c => c.code === cleanCode);
+    const foundIndex = codes.findIndex(c => c.code === cleanCode);
 
     if (foundIndex === -1) {
-      if (cleanCode.length >= 2) {
-        const isInfected = cleanCode.includes('WARN') || cleanCode.includes('INFECT') || cleanCode.includes('LOI') || cleanCode.includes('SCAN');
-        const newCodeObj = {
-          id: `code-dyn-${Date.now()}`,
-          code: cleanCode,
-          status: isInfected ? 'INFECTED' : 'SAFE',
-          targetUser: '',
-          isUsed: false,
-          usedAt: null,
-          usedBy: null,
-          createdAt: new Date().toISOString(),
-          note: 'Mã hệ thống tự động đồng bộ'
-        };
-        codes.push(newCodeObj);
-        this.saveCodes(codes);
-        foundIndex = codes.length - 1;
-      } else {
-        throw new Error('Mã code không hợp lệ hoặc quá ngắn!');
-      }
+      throw new Error('Mã code không hợp lệ hoặc không tồn tại trên hệ thống!');
     }
 
     const codeObj = codes[foundIndex];
@@ -430,7 +406,7 @@ class LocalDB {
 
     return {
       success: true,
-      status: codeObj.status, // 'SAFE' or 'INFECTED'
+      status: codeObj.status,
       code: codeObj.code,
       usedBy: codes[foundIndex].usedBy
     };
