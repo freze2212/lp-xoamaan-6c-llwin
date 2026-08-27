@@ -43,6 +43,15 @@ const DEFAULT_ADMIN = {
   password: 'admin123'
 };
 
+// In-memory fallback
+let memoryDb = {
+  banners: INITIAL_BANNERS,
+  codes: INITIAL_CODES,
+  config: DEFAULT_CONFIG,
+  adminCreds: DEFAULT_ADMIN,
+  updatedAt: new Date().toISOString()
+};
+
 function findKv(env) {
   if (!env || typeof env !== 'object') return null;
   if (env.XOAMA_KV && typeof env.XOAMA_KV.get === 'function') return env.XOAMA_KV;
