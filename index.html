@@ -134,32 +134,46 @@
   </div>
 
   <!-- Security Code Prompt Modal -->
-  <div id="code-modal-overlay" class="result-modal-overlay" style="display: none;" role="dialog" aria-modal="true">
-    <div class="result-modal">
-      <div class="result-status" style="color: #38bdf8;">
-        🔑 Nhập Code Xác Thực
+  <div id="code-modal-overlay" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-title">
+        <span>🔑</span> Nhập Mã Xác Thực Xoá Mã
       </div>
-      <div class="result-text" style="margin-bottom: 1rem;">
-        Vui lòng nhập mã code hợp lệ được cấp từ Admin để tiến hành xoá mã ẩn. Mỗi mã code chỉ dùng được <strong>1 lần duy nhất</strong>.
+      <div class="modal-desc">
+        Vui lòng nhập tên tài khoản và mã code do Admin cấp để tiến hành quét xoá mã ẩn trên hệ thống nhà cái.
       </div>
       
-      <input 
-        id="code-input" 
-        type="text" 
-        class="code-input" 
-        placeholder="Nhập mã code tại đây..." 
-        autocomplete="off"
-        style="margin-bottom: 0.75rem; text-transform: uppercase; font-family: var(--font-mono); font-weight: 700; letter-spacing: 1px;"
-      />
+      <div style="margin-bottom: 0.85rem;">
+        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #94a3b8; margin-bottom: 0.35rem;">👤 Tên tài khoản game:</label>
+        <input 
+          id="modal-username-input" 
+          type="text" 
+          class="modal-input" 
+          placeholder="Nhập tên tài khoản game..." 
+          autocomplete="off"
+          style="font-family: var(--font-main); font-size: 1rem; letter-spacing: normal;"
+        />
+      </div>
 
-      <div id="code-modal-error" style="color: #f87171; font-size: 0.88rem; margin-bottom: 0.85rem; display: none; font-weight: 600; background: rgba(239, 68, 68, 0.15); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.3);"></div>
+      <div style="margin-bottom: 1rem;">
+        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #94a3b8; margin-bottom: 0.35rem;">🔑 Mã Code xác thực:</label>
+        <input 
+          id="code-input" 
+          type="text" 
+          class="modal-input" 
+          placeholder="Ví dụ: 123, DBC, SAFE888..." 
+          autocomplete="off"
+        />
+      </div>
 
-      <div style="display: flex; gap: 0.75rem;">
-        <button type="button" id="btn-cancel-code" class="btn-close btn-modal-cancel">
+      <div id="code-modal-error" class="modal-error" style="display: none;"></div>
+
+      <div class="modal-actions">
+        <button type="button" id="btn-cancel-code" class="btn-modal-cancel">
           Huỷ Bỏ
         </button>
-        <button type="button" id="btn-submit-code" class="btn-close btn-modal-confirm">
-          Xác Nhận & Quét
+        <button type="button" id="btn-submit-code" class="btn-modal-submit">
+          🚀 Xác Nhận & Quét
         </button>
       </div>
     </div>
@@ -181,7 +195,7 @@
   </div>
 
   <!-- Scripts with Cache Buster -->
-  <script src="/assets/js/db.js?v=20260827_7"></script>
-  <script src="/assets/js/app.js?v=20260827_7"></script>
+  <script src="/assets/js/db.js?v=20260827_8"></script>
+  <script src="/assets/js/app.js?v=20260827_8"></script>
 </body>
 </html>

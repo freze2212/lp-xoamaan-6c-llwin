@@ -401,7 +401,12 @@ class LocalDB {
   getBanners() {
     try {
       const data = localStorage.getItem(DB_KEYS.BANNERS);
-      return data ? JSON.parse(data) : INITIAL_BANNERS;
+      const parsed = data ? JSON.parse(data) : null;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+      localStorage.setItem(DB_KEYS.BANNERS, JSON.stringify(INITIAL_BANNERS));
+      return INITIAL_BANNERS;
     } catch (e) {
       return INITIAL_BANNERS;
     }

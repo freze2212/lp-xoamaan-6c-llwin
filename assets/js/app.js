@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Modals
   const codeModalOverlay = document.getElementById('code-modal-overlay');
+  const modalUsernameInput = document.getElementById('modal-username-input');
   const codeInput = document.getElementById('code-input');
   const codeModalError = document.getElementById('code-modal-error');
   const btnCancelCode = document.getElementById('btn-cancel-code');
@@ -74,6 +75,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  if (modalUsernameInput) {
+    modalUsernameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        codeInput.focus();
+      }
+    });
+  }
+
   btnCloseResult.addEventListener('click', () => {
     resultModalOverlay.style.display = 'none';
   });
@@ -114,26 +123,19 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   }
 
-  let lastRenderedBannersJson = '';
-
   function renderBanners() {
-    const banners = window.db.getBanners();
-    const currentJson = JSON.stringify(banners);
-
-    // Skip re-rendering if data is identical (Anti-Flicker)
-    if (currentJson === lastRenderedBannersJson && bannersGrid.children.length > 0) {
-      updateActiveBannerSelection();
-      return;
+    let banners = window.db.getBanners();
+    if (!Array.isArray(banners) || banners.length === 0) {
+      banners = INITIAL_BANNERS;
     }
 
-    lastRenderedBannersJson = currentJson;
     bannersGrid.innerHTML = '';
 
     banners.forEach((banner) => {
       const button = document.createElement('button');
       button.type = 'button';
       button.dataset.bannerId = banner.id;
-      const isLlwin = banner.id === 'llwin';
+      const isLlwin = banner.id === 'llwin' || banner.id === '1' || (banner.name && banner.name.toUpperCase().includes('LLWIN'));
       const isActive = selectedHouseId === banner.id;
 
       button.className = `grid-item ${isLlwin ? 'grid-item-llwin' : ''} ${isActive ? 'active' : ''}`;
@@ -169,19 +171,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function handleOpenCodePrompt(actionType) {
     if (isScanning) return;
 
-    const username = usernameInput.value.trim();
-    if (!username) {
-      usernameInput.style.borderColor = '#ef4444';
-      usernameInput.style.boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.35)';
-      usernameInput.placeholder = '⚠️ Vui lòng nhập tên tài khoản game tại đây!';
-      usernameInput.focus();
-      setTimeout(() => {
-        usernameInput.style.borderColor = '';
-        usernameInput.style.boxShadow = '';
-      }, 2500);
-      return;
-    }
-
     if (!selectedHouseId) {
       selectedHouseId = 'llwin';
       updateActiveBannerSelection();
@@ -191,8 +180,22 @@ document.addEventListener('DOMContentLoaded', () => {
     codeInput.value = '';
     codeModalError.style.display = 'none';
     codeModalError.textContent = '';
+
+    // Sync username from outside
+    const outerUsername = usernameInput.value.trim();
+    if (modalUsernameInput) {
+      modalUsernameInput.value = outerUsername;
+    }
+
     codeModalOverlay.style.display = 'flex';
-    setTimeout(() => codeInput.focus(), 50);
+
+    setTimeout(() => {
+      if (modalUsernameInput && !modalUsernameInput.value.trim()) {
+        modalUsernameInput.focus();
+      } else {
+        codeInput.focus();
+      }
+    }, 60);
   }
 
   function closeCodeModal() {
@@ -222,13 +225,23 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   async function handleVerifyAndRun() {
-    const username = usernameInput.value.trim();
+    const username = (modalUsernameInput ? modalUsernameInput.value.trim() : '') || usernameInput.value.trim();
     const code = codeInput.value.trim().toUpperCase();
 
-    if (!code) {
-      showCodeModalError('Vui lòng nhập mã xác thực!');
+    if (!username) {
+      showCodeModalError('Vui lòng nhập tên tài khoản game cần xoá mã!');
+      if (modalUsernameInput) modalUsernameInput.focus();
       return;
     }
+
+    if (!code) {
+      showCodeModalError('Vui lòng nhập mã code xác thực!');
+      codeInput.focus();
+      return;
+    }
+
+    // Sync username back to outer input
+    usernameInput.value = username;
 
     try {
       // Verify code against server database (with real-time cross-device sync)
