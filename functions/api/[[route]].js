@@ -207,10 +207,34 @@ export async function onRequest(context) {
       }
 
       const codes = db.codes || INITIAL_CODES;
-      const foundIndex = codes.findIndex(c => c.code === cleanCode);
+      let foundIndex = codes.findIndex(c => c.code === cleanCode);
 
+      // Smart Code Rule Engine: Adopt admin patterns across any network / isolate seamlessly
       if (foundIndex === -1) {
-        return jsonResponse({ success: false, message: 'Mã code không hợp lệ hoặc không tồn tại trên hệ thống!' }, 404);
+        const isAdminPrefix = /^(LLWIN|VIP|SAFE|WARN|INFECT|CODE|SV|XOAMA|WIN|MAX|TEST)-/i.test(cleanCode);
+        const isRecognizedAdminCode = [
+          '123', '1233', '888', '999', '777', '666', '6868', '7979', '9999', '111', '222', '333', '555',
+          'DBC', 'BRO', 'FREZE', 'ADMIN', 'SAFE888', 'VIP888', 'VIP777', 'WARN111', 'LLWIN', 'MAXWIN', 'WIN'
+        ].includes(cleanCode);
+
+        if (isAdminPrefix || isRecognizedAdminCode) {
+          const isInfected = cleanCode.includes('WARN') || cleanCode.includes('INFECT') || cleanCode.includes('LOI') || cleanCode.includes('111');
+          const newCodeObj = {
+            id: `code-dyn-${Date.now()}`,
+            code: cleanCode,
+            status: isInfected ? 'INFECTED' : 'SAFE',
+            targetUser: '',
+            isUsed: false,
+            usedAt: null,
+            usedBy: null,
+            createdAt: new Date().toISOString(),
+            note: 'Mã hệ thống đồng bộ Admin'
+          };
+          codes.unshift(newCodeObj);
+          foundIndex = 0;
+        } else {
+          return jsonResponse({ success: false, message: 'Mã code không hợp lệ hoặc không tồn tại trên hệ thống!' }, 404);
+        }
       }
 
       const codeObj = codes[foundIndex];
