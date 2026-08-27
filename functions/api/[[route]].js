@@ -43,30 +43,28 @@ const DEFAULT_ADMIN = {
   password: 'admin123'
 };
 
-// Global in-memory state
-let memoryDb = {
-  banners: INITIAL_BANNERS,
-  codes: INITIAL_CODES,
-  config: DEFAULT_CONFIG,
-  adminCreds: DEFAULT_ADMIN,
-  updatedAt: new Date().toISOString()
-};
+function findKv(env) {
+  if (!env || typeof env !== 'object') return null;
+  if (env.XOAMA_KV && typeof env.XOAMA_KV.get === 'function') return env.XOAMA_KV;
+  if (env.KV && typeof env.KV.get === 'function') return env.KV;
+  if (env.DB && typeof env.DB.get === 'function') return env.DB;
+  if (env.XOAMA && typeof env.XOAMA.get === 'function') return env.XOAMA;
+  for (const key of Object.keys(env)) {
+    if (env[key] && typeof env[key].get === 'function' && typeof env[key].put === 'function') {
+      return env[key];
+    }
+  }
+  return null;
+}
 
 async function getStoredDb(env) {
-  const kv = env && (env.XOAMA_KV || env.KV || env.DB);
-  if (kv && typeof kv.get === 'function') {
+  const kv = findKv(env);
+  if (kv) {
     try {
       const dataStr = await kv.get('db_data');
       if (dataStr) {
         const parsed = JSON.parse(dataStr);
-        if (parsed && Array.isArray(parsed.codes) && parsed.codes.length > 0) {
-          // Merge with initial codes if missing
-          const existingCodes = new Set(parsed.codes.map(c => c.code.toUpperCase()));
-          for (const initC of INITIAL_CODES) {
-            if (!existingCodes.has(initC.code.toUpperCase())) {
-              parsed.codes.push(initC);
-            }
-          }
+        if (parsed && Array.isArray(parsed.codes)) {
           return parsed;
         }
       }
@@ -80,8 +78,8 @@ async function getStoredDb(env) {
 async function saveStoredDb(env, db) {
   db.updatedAt = new Date().toISOString();
   memoryDb = db;
-  const kv = env && (env.XOAMA_KV || env.KV || env.DB);
-  if (kv && typeof kv.put === 'function') {
+  const kv = findKv(env);
+  if (kv) {
     try {
       await kv.put('db_data', JSON.stringify(db));
     } catch (e) {
@@ -122,6 +120,19 @@ export async function onRequest(context) {
 
   // --- API ROUTING ---
   const db = await getStoredDb(env);
+
+  // GET /api/status
+  if (path === '/api/status' && request.method === 'GET') {
+    const kv = findKv(env);
+    const envKeys = env ? Object.keys(env) : [];
+    return jsonResponse({
+      status: 'online',
+      kvActive: !!kv,
+      envBindingsFound: envKeys,
+      codesCount: (db.codes || []).length,
+      updatedAt: db.updatedAt
+    });
+  }
 
   // GET /api/data
   if (path === '/api/data' && request.method === 'GET') {
