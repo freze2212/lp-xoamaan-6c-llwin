@@ -354,12 +354,14 @@ class LocalDB {
         };
       }
       if (json && !json.success && json.message) {
-        throw new Error(json.message);
+        if (json.message.includes('đã được sử dụng')) {
+          throw new Error(json.message);
+        }
       }
-      // Fallback
+      // Fallback to local
       return this.verifyAndConsumeCode(cleanCode, username);
     } catch (err) {
-      if (err.message && (err.message.includes('đã được sử dụng') || err.message.includes('không hợp lệ') || err.message.includes('không có quyền'))) {
+      if (err.message && err.message.includes('đã được sử dụng')) {
         throw err;
       }
       // Fallback to local
