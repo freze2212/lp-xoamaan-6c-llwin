@@ -171,14 +171,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const username = usernameInput.value.trim();
     if (!username) {
-      alert('Vui lòng nhập tên tài khoản game cần xoá mã!');
+      usernameInput.style.borderColor = '#ef4444';
+      usernameInput.style.boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.35)';
+      usernameInput.placeholder = '⚠️ Vui lòng nhập tên tài khoản game tại đây!';
       usernameInput.focus();
+      setTimeout(() => {
+        usernameInput.style.borderColor = '';
+        usernameInput.style.boxShadow = '';
+      }, 2500);
       return;
     }
 
     if (!selectedHouseId) {
-      alert('Vui lòng chọn nhà cái trong danh sách phía dưới!');
-      return;
+      selectedHouseId = 'llwin';
+      updateActiveBannerSelection();
     }
 
     currentActionType = actionType;
@@ -186,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
     codeModalError.style.display = 'none';
     codeModalError.textContent = '';
     codeModalOverlay.style.display = 'flex';
-    codeInput.focus();
+    setTimeout(() => codeInput.focus(), 50);
   }
 
   function closeCodeModal() {
@@ -194,6 +200,26 @@ document.addEventListener('DOMContentLoaded', () => {
     codeInput.value = '';
     codeModalError.style.display = 'none';
   }
+
+  // Close modal on click backdrop
+  codeModalOverlay.addEventListener('click', (e) => {
+    if (e.target === codeModalOverlay) {
+      closeCodeModal();
+    }
+  });
+
+  resultModalOverlay.addEventListener('click', (e) => {
+    if (e.target === resultModalOverlay) {
+      resultModalOverlay.style.display = 'none';
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeCodeModal();
+      resultModalOverlay.style.display = 'none';
+    }
+  });
 
   async function handleVerifyAndRun() {
     const username = usernameInput.value.trim();
