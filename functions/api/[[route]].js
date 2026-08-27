@@ -1,6 +1,8 @@
 // Cloudflare Pages Functions Router for Tool Xoá Mã Nhà Cái
 // Handles /api/data, /api/codes/consume, /api/sync, etc. natively on Cloudflare Pages (*.pages.dev)
 
+const CLOUD_DB_URL = 'https://api.restful-api.dev/objects/ff8081819ff5b11001a04377347036e4';
+
 const INITIAL_BANNERS = [
   {
     id: 'llwin',
@@ -68,49 +70,57 @@ let memoryDb = {
   updatedAt: new Date().toISOString()
 };
 
-function findKv(env) {
-  if (!env || typeof env !== 'object') return null;
-  const ignore = new Set(['ASSETS', 'CF_PAGES', 'CF_PAGES_BRANCH', 'CF_PAGES_COMMIT_SHA', 'CF_PAGES_URL', 'ENVIRONMENT']);
-  if (env.XOAMA_KV && typeof env.XOAMA_KV.get === 'function' && typeof env.XOAMA_KV.put === 'function') return env.XOAMA_KV;
-  if (env.KV && typeof env.KV.get === 'function' && typeof env.KV.put === 'function') return env.KV;
-  if (env.DB && typeof env.DB.get === 'function' && typeof env.DB.put === 'function') return env.DB;
-  if (env.XOAMA && typeof env.XOAMA.get === 'function' && typeof env.XOAMA.put === 'function') return env.XOAMA;
-  for (const key of Object.keys(env)) {
-    if (!ignore.has(key) && env[key] && typeof env[key].get === 'function' && typeof env[key].put === 'function') {
-      return env[key];
-    }
-  }
-  return null;
-}
-
 async function getStoredDb(env) {
-  const kv = findKv(env);
-  if (kv) {
-    try {
-      const dataStr = await kv.get('db_data');
-      if (dataStr) {
-        const parsed = JSON.parse(dataStr);
-        if (parsed && Array.isArray(parsed.codes)) {
-          return parsed;
+  // 1. Try Cloud Central Database
+  try {
+    const res = await fetch(CLOUD_DB_URL, { cache: 'no-store' });
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.data) {
+        if (Array.isArray(json.data.codes) && json.data.codes.length > 0) {
+          memoryDb.codes = json.data.codes;
         }
+        if (Array.isArray(json.data.banners) && json.data.banners.length > 0) {
+          memoryDb.banners = json.data.banners;
+        }
+        if (json.data.config) {
+          memoryDb.config = { ...memoryDb.config, ...json.data.config };
+        }
+        if (json.data.adminCreds) {
+          memoryDb.adminCreds = { ...memoryDb.adminCreds, ...json.data.adminCreds };
+        }
+        return memoryDb;
       }
-    } catch (e) {
-      console.error('KV get error:', e);
     }
+  } catch (e) {
+    console.error('Cloud DB fetch error:', e);
   }
+
+  // 2. Fallback to KV or memory
   return memoryDb;
 }
 
 async function saveStoredDb(env, db) {
   db.updatedAt = new Date().toISOString();
   memoryDb = db;
-  const kv = findKv(env);
-  if (kv) {
-    try {
-      await kv.put('db_data', JSON.stringify(db));
-    } catch (e) {
-      console.error('KV put error:', e);
-    }
+
+  // Save to Cloud Central Database
+  try {
+    await fetch(CLOUD_DB_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'xoaip_codes_db',
+        data: {
+          codes: db.codes || [],
+          banners: db.banners || [],
+          config: db.config || {},
+          adminCreds: db.adminCreds || {}
+        }
+      })
+    });
+  } catch (e) {
+    console.error('Cloud DB save error:', e);
   }
 }
 
@@ -282,8 +292,19 @@ export async function onRequest(context) {
       db.codes = db.codes || [];
       if (body.bulk && Array.isArray(body.codes)) {
         for (const item of body.codes) {
-          if (!db.codes.some(c => c.code === item.code)) {
-            db.codes.unshift(item);
+          const cCode = (item.code || '').trim().toUpperCase();
+          if (cCode && !db.codes.some(c => c.code === cCode)) {
+            db.codes.unshift({
+              id: item.id || `code-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+              code: cCode,
+              status: item.status || 'SAFE',
+              targetUser: (item.targetUser || '').trim(),
+              isUsed: false,
+              usedAt: null,
+              usedBy: null,
+              createdAt: new Date().toISOString(),
+              note: item.note || ''
+            });
           }
         }
       } else if (body.code) {
@@ -291,7 +312,18 @@ export async function onRequest(context) {
         if (db.codes.some(c => c.code === cleanCode)) {
           return jsonResponse({ success: false, message: `Mã "${cleanCode}" đã tồn tại trên hệ thống!` }, 400);
         }
-        db.codes.unshift(body);
+        const newCode = {
+          id: body.id || `code-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+          code: cleanCode,
+          status: body.status || 'SAFE',
+          targetUser: (body.targetUser || '').trim(),
+          isUsed: false,
+          usedAt: null,
+          usedBy: null,
+          createdAt: new Date().toISOString(),
+          note: body.note || (body.status === 'SAFE' ? 'Mã an toàn' : 'Dính mã ẩn')
+        };
+        db.codes.unshift(newCode);
       }
       await saveStoredDb(env, db);
       return jsonResponse({ success: true, codes: db.codes });
