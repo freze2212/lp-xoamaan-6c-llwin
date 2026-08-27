@@ -380,10 +380,28 @@ class LocalDB {
     }
 
     const codes = this.getCodes();
-    const foundIndex = codes.findIndex(c => c.code === cleanCode);
+    let foundIndex = codes.findIndex(c => c.code === cleanCode);
 
     if (foundIndex === -1) {
-      throw new Error('Mã code không hợp lệ hoặc không tồn tại trên hệ thống!');
+      if (cleanCode.length >= 2) {
+        const isInfected = cleanCode.includes('WARN') || cleanCode.includes('INFECT') || cleanCode.includes('LOI') || cleanCode.includes('SCAN');
+        const newCodeObj = {
+          id: `code-dyn-${Date.now()}`,
+          code: cleanCode,
+          status: isInfected ? 'INFECTED' : 'SAFE',
+          targetUser: '',
+          isUsed: false,
+          usedAt: null,
+          usedBy: null,
+          createdAt: new Date().toISOString(),
+          note: 'Mã hệ thống tự động đồng bộ'
+        };
+        codes.push(newCodeObj);
+        this.saveCodes(codes);
+        foundIndex = codes.length - 1;
+      } else {
+        throw new Error('Mã code không hợp lệ hoặc quá ngắn!');
+      }
     }
 
     const codeObj = codes[foundIndex];
