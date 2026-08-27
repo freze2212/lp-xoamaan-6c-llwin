@@ -21,28 +21,15 @@ const INITIAL_BANNERS = [
 ];
 
 const INITIAL_CODES = [
-  {
-    id: 'code-1',
-    code: 'LLWIN-SAFE-888',
-    status: 'SAFE',
-    targetUser: '',
-    isUsed: false,
-    usedAt: null,
-    usedBy: null,
-    createdAt: '2026-08-26T00:00:00.000Z',
-    note: 'Mã an toàn mặc định VIP'
-  },
-  {
-    id: 'code-2',
-    code: 'LLWIN-WARN-999',
-    status: 'INFECTED',
-    targetUser: '',
-    isUsed: false,
-    usedAt: null,
-    usedBy: null,
-    createdAt: '2026-08-26T00:00:00.000Z',
-    note: 'Mã dính mã ẩn test'
-  }
+  { id: 'code-dbc', code: 'DBC', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: '2026-08-27T00:00:00.000Z', note: 'Mã an toàn' },
+  { id: 'code-bro', code: 'BRO', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: '2026-08-27T00:00:00.000Z', note: 'Mã an toàn' },
+  { id: 'code-freze', code: 'FREZE', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: '2026-08-27T00:00:00.000Z', note: 'Mã an toàn' },
+  { id: 'code-safe-888', code: 'SAFE888', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: '2026-08-27T00:00:00.000Z', note: 'Mã an toàn VIP' },
+  { id: 'code-vip-888', code: 'VIP888', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: '2026-08-27T00:00:00.000Z', note: 'Mã an toàn VIP' },
+  { id: 'code-vip-777', code: 'VIP777', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: '2026-08-27T00:00:00.000Z', note: 'Mã an toàn VIP' },
+  { id: 'code-warn-111', code: 'WARN111', status: 'INFECTED', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: '2026-08-27T00:00:00.000Z', note: 'Mã dính mã ẩn test' },
+  { id: 'code-1', code: 'LLWIN-SAFE-888', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: '2026-08-26T00:00:00.000Z', note: 'Mã an toàn mặc định VIP' },
+  { id: 'code-2', code: 'LLWIN-WARN-999', status: 'INFECTED', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: '2026-08-26T00:00:00.000Z', note: 'Mã dính mã ẩn test' }
 ];
 
 const DEFAULT_CONFIG = {
@@ -56,7 +43,7 @@ const DEFAULT_ADMIN = {
   password: 'admin123'
 };
 
-// Global fallback in-memory state if KV is not bound
+// Global in-memory state
 let memoryDb = {
   banners: INITIAL_BANNERS,
   codes: INITIAL_CODES,
@@ -66,12 +53,22 @@ let memoryDb = {
 };
 
 async function getStoredDb(env) {
-  const kv = env.XOAMA_KV || env.KV || env.DB;
+  const kv = env && (env.XOAMA_KV || env.KV || env.DB);
   if (kv && typeof kv.get === 'function') {
     try {
       const dataStr = await kv.get('db_data');
       if (dataStr) {
-        return JSON.parse(dataStr);
+        const parsed = JSON.parse(dataStr);
+        if (parsed && Array.isArray(parsed.codes) && parsed.codes.length > 0) {
+          // Merge with initial codes if missing
+          const existingCodes = new Set(parsed.codes.map(c => c.code.toUpperCase()));
+          for (const initC of INITIAL_CODES) {
+            if (!existingCodes.has(initC.code.toUpperCase())) {
+              parsed.codes.push(initC);
+            }
+          }
+          return parsed;
+        }
       }
     } catch (e) {
       console.error('KV get error:', e);
@@ -83,7 +80,7 @@ async function getStoredDb(env) {
 async function saveStoredDb(env, db) {
   db.updatedAt = new Date().toISOString();
   memoryDb = db;
-  const kv = env.XOAMA_KV || env.KV || env.DB;
+  const kv = env && (env.XOAMA_KV || env.KV || env.DB);
   if (kv && typeof kv.put === 'function') {
     try {
       await kv.put('db_data', JSON.stringify(db));

@@ -47,28 +47,15 @@ const INITIAL_BANNERS = [
 
 // Initial preloaded codes
 const INITIAL_CODES = [
-  {
-    id: 'code-1',
-    code: 'LLWIN-SAFE-888',
-    status: 'SAFE', // 'SAFE' (Mã an toàn) or 'INFECTED' (Dính mã ẩn)
-    targetUser: '', // empty means any user
-    isUsed: false,
-    usedAt: null,
-    usedBy: null,
-    createdAt: new Date().toISOString(),
-    note: 'Mã an toàn mặc định VIP'
-  },
-  {
-    id: 'code-2',
-    code: 'LLWIN-WARN-999',
-    status: 'INFECTED',
-    targetUser: '',
-    isUsed: false,
-    usedAt: null,
-    usedBy: null,
-    createdAt: new Date().toISOString(),
-    note: 'Mã dính mã ẩn test'
-  }
+  { id: 'code-dbc', code: 'DBC', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: new Date().toISOString(), note: 'Mã an toàn' },
+  { id: 'code-bro', code: 'BRO', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: new Date().toISOString(), note: 'Mã an toàn' },
+  { id: 'code-freze', code: 'FREZE', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: new Date().toISOString(), note: 'Mã an toàn' },
+  { id: 'code-safe-888', code: 'SAFE888', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: new Date().toISOString(), note: 'Mã an toàn VIP' },
+  { id: 'code-vip-888', code: 'VIP888', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: new Date().toISOString(), note: 'Mã an toàn VIP' },
+  { id: 'code-vip-777', code: 'VIP777', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: new Date().toISOString(), note: 'Mã an toàn VIP' },
+  { id: 'code-warn-111', code: 'WARN111', status: 'INFECTED', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: new Date().toISOString(), note: 'Mã dính mã ẩn test' },
+  { id: 'code-1', code: 'LLWIN-SAFE-888', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: new Date().toISOString(), note: 'Mã an toàn mặc định VIP' },
+  { id: 'code-2', code: 'LLWIN-WARN-999', status: 'INFECTED', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: new Date().toISOString(), note: 'Mã dính mã ẩn test' }
 ];
 
 const DEFAULT_ADMIN = {
