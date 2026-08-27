@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
     codeModalError.style.display = 'none';
   }
 
-  function handleVerifyAndRun() {
+  async function handleVerifyAndRun() {
     const username = usernameInput.value.trim();
     const code = codeInput.value.trim().toUpperCase();
 
@@ -183,8 +183,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      // Verify code against localStorage database
-      const result = window.db.verifyAndConsumeCode(code, username);
+      // Verify code against server database (with real-time cross-device sync)
+      const result = await window.db.verifyAndConsumeCodeAsync(code, username);
 
       // Close code prompt modal
       closeCodeModal();
@@ -287,26 +287,53 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       // Dính mã ẩn (INFECTED)
       resultModalCard.classList.add('modal-infected');
-      resultTitle.className = 'result-status warning';
-      resultTitle.innerHTML = '⚠️ Cảnh Báo: Dính Mã Ẩn!';
+      resultTitle.className = 'result-status error danger-alarm';
+      resultTitle.innerHTML = '<span class="danger-siren">🚨</span> <span class="danger-title-text">CẢNH BÁO: DÍNH MÃ IP ĐỘC HẠI!</span>';
 
       resultText.innerHTML = `
-❎ <strong>Tài khoản:</strong> ${username}
+<div class="infected-popup-content">
+  <div class="infected-user-row">
+    <span class="infected-user-icon">🛑</span>
+    <span><strong>Tài khoản:</strong> <span class="infected-username">${username}</span></span>
+  </div>
 
-💫 <strong>Mã ẩn chưa được xoá hoàn toàn!</strong>
-✴️ Cần có bill nạp bất kỳ tại nhà cái để kích hoạt lại hệ thống nhận diện và xoá sạch mã ẩn.
-⚛️ Sau khi xoá sạch mã ẩn sẽ được kích hoạt toàn bộ tính năng: <strong>BIG WIN, SCATTER</strong> và loại bỏ soi BCR mọi sảnh game.
+  <div class="infected-danger-card">
+    <div class="danger-card-header">
+      <span class="danger-icon-blink">⚠️</span>
+      <span class="danger-card-title">PHÁT HIỆN DẤU HIỆU ĐỘC HẠI</span>
+    </div>
+    <div class="danger-card-body">
+      Tài khoản của bạn vừa được phát hiện có dấu hiệu liên quan đến <span class="text-highlight-danger">địa chỉ IP đáng ngờ/mã IP độc hại</span>. Hãy xóa địa chỉ IP bất thường khỏi tài khoản càng sớm càng tốt để tránh nguy cơ <span class="text-highlight-danger">truy cập trái phép</span>.
+    </div>
+  </div>
 
-💎 <em>Vui lòng liên hệ Admin để được hỗ trợ xoá lại mã ẩn ngay!</em>`;
+  <div class="infected-benefit-card">
+    <div class="benefit-card-header">
+      <span class="benefit-icon">⚡</span>
+      <span class="benefit-card-title">QUYỀN LỢI SAU KHI XỬ LÝ SẠCH:</span>
+    </div>
+    <div class="benefit-card-body">
+      Sau khi xóa sạch mã ẩn sẽ được kích hoạt toàn bộ tính năng : <strong class="text-highlight-gold">BIG WIN</strong>, <strong class="text-highlight-gold">SCATTER</strong> và <strong class="text-highlight-gold">loại bỏ soi BCR</strong> mọi sảnh game.
+    </div>
+  </div>
+
+  <div class="infected-cta-card">
+    <span class="cta-icon">💎</span>
+    <span class="cta-text">Vui lòng liên hệ Admin để được hỗ trợ xóa IP mạng ngay !</span>
+  </div>
+</div>`;
 
       // Add Support Button
       const btnSupport = document.createElement('a');
       btnSupport.href = supportLink;
       btnSupport.target = '_blank';
       btnSupport.rel = 'noopener noreferrer';
-      btnSupport.className = 'btn-close btn-modal-llwin';
-      btnSupport.style.background = 'linear-gradient(135deg, #06b6d4, #3b82f6)';
-      btnSupport.innerHTML = '💬 LIÊN HỆ ADMIN HỖ TRỢ NGAY';
+      btnSupport.className = 'btn-close btn-modal-urgent-support';
+      btnSupport.innerHTML = `
+        <span class="urgent-btn-fire">🚨</span>
+        <span>LIÊN HỆ ADMIN XÓA IP MẠNG NGAY</span>
+        <span class="urgent-btn-arrow">⚡</span>
+      `;
 
       resultActionArea.appendChild(btnSupport);
     }

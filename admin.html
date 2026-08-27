@@ -301,6 +301,26 @@
         <div class="admin-card" style="max-width: 600px;">
           <div class="admin-card-header">
             <h2 class="admin-card-title">
+              <span>🌐</span> Cấu Hình Đồng Bộ Dữ Liệu Online (Hosting / MockAPI)
+            </h2>
+          </div>
+          <form id="form-cloud-sync">
+            <p style="color: #94a3b8; font-size: 0.88rem; margin-bottom: 0.75rem; line-height: 1.5;">
+              Hệ thống tự động đồng bộ qua API máy chủ (<code>api.php</code> trên host PHP/cPanel hoặc <code>/api</code> trên Node server). Nếu bạn dùng hosting tĩnh thuần túy (như Vercel/GitHub Pages), bạn có thể dán URL MockAPI tại đây.
+            </p>
+            <div style="margin-bottom: 1rem;">
+              <label class="admin-label">URL Cloud / MockAPI (Mặc định: Tự động)</label>
+              <input id="cloud-api-input" type="url" class="admin-input" placeholder="Để trống để tự động dùng API hosting (api.php)" />
+            </div>
+            <button type="submit" class="btn-admin-primary">
+              💾 Lưu Cấu Hình Đồng Bộ
+            </button>
+          </form>
+        </div>
+
+        <div class="admin-card" style="max-width: 600px;">
+          <div class="admin-card-header">
+            <h2 class="admin-card-title">
               <span>🔐</span> Đổi Mật Khẩu Admin
             </h2>
           </div>

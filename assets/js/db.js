@@ -85,6 +85,8 @@ const DEFAULT_CONFIG = {
 class LocalDB {
   constructor() {
     this.init();
+    this.fetchFromServer();
+    this.startPeriodicSync();
   }
 
   init() {
@@ -102,6 +104,96 @@ class LocalDB {
     }
   }
 
+  async requestApi(endpoint, method = 'GET', body = null) {
+    const config = this.getConfig();
+    const candidates = [];
+
+    if (config.cloudApiUrl && config.cloudApiUrl.startsWith('http')) {
+      candidates.push(config.cloudApiUrl + (endpoint.startsWith('/') ? endpoint : '/' + endpoint));
+    }
+
+    if (endpoint === '/data') {
+      candidates.push('/api/data', './api.php?action=data', 'api.php?action=data');
+    } else if (endpoint === '/codes/consume') {
+      candidates.push('/api/codes/consume', './api.php?action=consume', 'api.php?action=consume');
+    } else if (endpoint === '/sync') {
+      candidates.push('/api/sync', './api.php?action=sync', 'api.php?action=sync');
+    } else {
+      candidates.push('/api' + endpoint, './api.php?action=' + endpoint.replace(/^\//, ''), 'api.php?action=' + endpoint.replace(/^\//, ''));
+    }
+
+    for (const url of candidates) {
+      try {
+        const opts = {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store',
+          ...(body ? { body: JSON.stringify(body) } : {})
+        };
+        const res = await fetch(url, opts);
+        if (res.ok) {
+          const json = await res.json();
+          return json;
+        } else if (res.status === 400 || res.status === 403 || res.status === 404) {
+          const errJson = await res.json().catch(() => null);
+          if (errJson && errJson.message) {
+            throw new Error(errJson.message);
+          }
+        }
+      } catch (err) {
+        if (err.message && (err.message.includes('đã được sử dụng') || err.message.includes('không hợp lệ') || err.message.includes('không có quyền'))) {
+          throw err;
+        }
+        // Try next candidate
+      }
+    }
+    return null;
+  }
+
+  async fetchFromServer() {
+    try {
+      const json = await this.requestApi('/data', 'GET');
+      if (json && json.success) {
+        if (Array.isArray(json.codes)) {
+          localStorage.setItem(DB_KEYS.CODES, JSON.stringify(json.codes));
+        }
+        if (Array.isArray(json.banners)) {
+          localStorage.setItem(DB_KEYS.BANNERS, JSON.stringify(json.banners));
+        }
+        if (json.config) {
+          localStorage.setItem(DB_KEYS.APP_CONFIG, JSON.stringify(json.config));
+        }
+        if (json.adminCreds) {
+          localStorage.setItem(DB_KEYS.ADMIN_CREDS, JSON.stringify(json.adminCreds));
+        }
+        this.notifyUpdate();
+      }
+    } catch (e) {
+      // Fallback to local
+    }
+  }
+
+  startPeriodicSync() {
+    setInterval(() => {
+      this.fetchFromServer();
+    }, 2500);
+  }
+
+  async pushToServer(type = 'sync', payload = {}) {
+    try {
+      const data = {
+        codes: this.getCodes(),
+        banners: this.getBanners(),
+        config: this.getConfig(),
+        adminCreds: this.getAdminCreds(),
+        ...payload
+      };
+      await this.requestApi('/sync', 'POST', data);
+    } catch (e) {
+      // Fallback
+    }
+  }
+
   // --- CODES CRUD ---
   getCodes() {
     try {
@@ -116,6 +208,7 @@ class LocalDB {
   saveCodes(codes) {
     localStorage.setItem(DB_KEYS.CODES, JSON.stringify(codes));
     this.notifyUpdate();
+    this.pushToServer('sync');
   }
 
   addCode({ code, status = 'SAFE', targetUser = '', note = '' }) {
@@ -193,7 +286,46 @@ class LocalDB {
   }
 
   /**
-   * Verify and consume a code (1-time use)
+   * Async Verify and consume a code (Queries server API first, falls back to local)
+   * @param {string} inputCode 
+   * @param {string} username 
+   * @returns {Promise<{ success: boolean, status: 'SAFE' | 'INFECTED', code: string, usedBy: string }>}
+   */
+  async verifyAndConsumeCodeAsync(inputCode, username = '') {
+    const cleanCode = (inputCode || '').trim().toUpperCase();
+    if (!cleanCode) {
+      throw new Error('Vui lòng nhập mã code xác thực!');
+    }
+
+    try {
+      const json = await this.requestApi('/codes/consume', 'POST', { code: cleanCode, username: username.trim() });
+      if (json && json.success) {
+        // Update local storage to match
+        await this.fetchFromServer();
+
+        return {
+          success: true,
+          status: json.status,
+          code: json.code,
+          usedBy: json.usedBy
+        };
+      }
+      if (json && !json.success && json.message) {
+        throw new Error(json.message);
+      }
+      // Fallback
+      return this.verifyAndConsumeCode(cleanCode, username);
+    } catch (err) {
+      if (err.message && (err.message.includes('đã được sử dụng') || err.message.includes('không hợp lệ') || err.message.includes('không có quyền'))) {
+        throw err;
+      }
+      // Fallback to local
+      return this.verifyAndConsumeCode(cleanCode, username);
+    }
+  }
+
+  /**
+   * Verify and consume a code (Synchronous local fallback)
    * @param {string} inputCode 
    * @param {string} username 
    * @returns { status: 'SAFE' | 'INFECTED', code: string }

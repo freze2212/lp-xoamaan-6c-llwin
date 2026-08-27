@@ -194,11 +194,15 @@ document.addEventListener('DOMContentLoaded', () => {
     renderCodesTable();
     renderBannersTable(banners);
 
-    // LLWIN Link input & Telegram Link input
+    // LLWIN Link input & Telegram Link input & Cloud API
     llwinLinkInput.value = config.defaultHouseLink || 'https://www.07llwin.com/?id=832516623';
     const telegramInput = document.getElementById('telegram-link-input');
     if (telegramInput) {
       telegramInput.value = config.supportTelegram || 'https://t.me/thosantp79';
+    }
+    const cloudApiInput = document.getElementById('cloud-api-input');
+    if (cloudApiInput) {
+      cloudApiInput.value = config.cloudApiUrl || '';
     }
   }
 
@@ -409,6 +413,20 @@ document.addEventListener('DOMContentLoaded', () => {
       config.supportTelegram = newTele;
       window.db.saveConfig(config);
       showToast('Đã lưu link Telegram hỗ trợ thành công!', 'success');
+    });
+  }
+
+  const formCloudSync = document.getElementById('form-cloud-sync');
+  if (formCloudSync) {
+    formCloudSync.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const cloudUrl = document.getElementById('cloud-api-input').value.trim();
+      const config = window.db.getConfig();
+      config.cloudApiUrl = cloudUrl;
+      window.db.saveConfig(config);
+      showToast('Đã lưu cấu hình Cloud API! Đang đồng bộ...', 'success');
+      await window.db.fetchFromServer();
+      loadDashboardData();
     });
   }
 
