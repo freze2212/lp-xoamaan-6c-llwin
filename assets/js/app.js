@@ -123,47 +123,22 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   }
 
-  let lastRenderedBannersJson = '';
-
-  function renderBanners() {
-    let banners = window.db.getBanners();
-    if (!Array.isArray(banners) || banners.length === 0) {
-      banners = INITIAL_BANNERS;
-    }
-
-    const currentJson = JSON.stringify(banners);
-    if (currentJson === lastRenderedBannersJson && bannersGrid.children.length > 0) {
-      updateActiveBannerSelection();
-      return;
-    }
-
-    lastRenderedBannersJson = currentJson;
-    bannersGrid.innerHTML = '';
-
-    banners.forEach((banner) => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.dataset.bannerId = banner.id;
-      const isLlwin = banner.id === 'llwin' || banner.id === '1' || (banner.name && banner.name.toUpperCase().includes('LLWIN'));
-      const isActive = selectedHouseId === banner.id;
-
-      button.className = `grid-item ${isLlwin ? 'grid-item-llwin' : ''} ${isActive ? 'active' : ''}`;
-      button.setAttribute('aria-label', banner.name || `Banner ${banner.id}`);
-      button.title = `${banner.name || 'Nhà cái'} ${isLlwin ? '(Khuyên dùng - LLWIN)' : ''}`;
-
-      const imgSrc = banner.imageUrl || './uploads/banner_llwin.svg';
-
-      button.innerHTML = `
-        <img class="grid-item-image" src="${imgSrc}" alt="${banner.name || 'Banner'}" />
-      `;
-
-      button.addEventListener('click', () => {
-        selectedHouseId = banner.id;
+  // Initialize static banner clicks
+  function initStaticBannerClicks() {
+    const buttons = bannersGrid.querySelectorAll('.grid-item');
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        selectedHouseId = btn.dataset.bannerId;
         updateActiveBannerSelection();
       });
-
-      bannersGrid.appendChild(button);
     });
+  }
+
+  initStaticBannerClicks();
+
+  function renderBanners() {
+    // Buttons are already pre-rendered statically in HTML for instant loading on PC and Mobile!
+    updateActiveBannerSelection();
   }
 
   function updateActiveBannerSelection() {

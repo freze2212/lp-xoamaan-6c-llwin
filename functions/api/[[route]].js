@@ -206,29 +206,11 @@ export async function onRequest(context) {
         return jsonResponse({ success: false, message: 'Vui lòng nhập mã code xác thực!' }, 400);
       }
 
-      const codes = db.codes || [];
-      let foundIndex = codes.findIndex(c => c.code === cleanCode);
+      const codes = db.codes || INITIAL_CODES;
+      const foundIndex = codes.findIndex(c => c.code === cleanCode);
 
-      // If code was dynamically issued by admin on another edge node, auto-adopt it smoothly
       if (foundIndex === -1) {
-        if (cleanCode.length >= 2) {
-          const isInfected = cleanCode.includes('WARN') || cleanCode.includes('INFECT') || cleanCode.includes('LOI') || cleanCode.includes('SCAN');
-          const newCodeObj = {
-            id: `code-dyn-${Date.now()}`,
-            code: cleanCode,
-            status: isInfected ? 'INFECTED' : 'SAFE',
-            targetUser: '',
-            isUsed: false,
-            usedAt: null,
-            usedBy: null,
-            createdAt: new Date().toISOString(),
-            note: 'Mã hệ thống tự động đồng bộ'
-          };
-          codes.push(newCodeObj);
-          foundIndex = codes.length - 1;
-        } else {
-          return jsonResponse({ success: false, message: 'Mã code không hợp lệ hoặc quá ngắn!' }, 404);
-        }
+        return jsonResponse({ success: false, message: 'Mã code không hợp lệ hoặc không tồn tại trên hệ thống!' }, 404);
       }
 
       const codeObj = codes[foundIndex];
