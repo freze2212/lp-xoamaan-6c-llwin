@@ -181,7 +181,7 @@ class LocalDB {
     }
   }
 
-  // --- CODES CRUD ---
+  // --- CODES CRUD (Async Server First) ---
   getCodes() {
     try {
       const data = localStorage.getItem(DB_KEYS.CODES);
@@ -195,16 +195,12 @@ class LocalDB {
   saveCodes(codes) {
     localStorage.setItem(DB_KEYS.CODES, JSON.stringify(codes));
     this.notifyUpdate();
-    this.pushToServer('sync');
   }
 
-  addCode({ code, status = 'SAFE', targetUser = '', note = '' }) {
-    const codes = this.getCodes();
+  async addCodeAsync({ code, status = 'SAFE', targetUser = '', note = '' }) {
     const cleanCode = code.trim().toUpperCase();
-
-    // Check duplicate
-    if (codes.some(c => c.code === cleanCode)) {
-      throw new Error(`Mã "${cleanCode}" đã tồn tại trong hệ thống!`);
+    if (!cleanCode) {
+      throw new Error('Vui lòng nhập mã code!');
     }
 
     const newEntry = {
@@ -219,15 +215,26 @@ class LocalDB {
       note: note.trim()
     };
 
+    // 1. Send directly to server API
+    const res = await this.requestApi('/codes/add', 'POST', newEntry);
+    if (res && res.codes) {
+      this.saveCodes(res.codes);
+      return newEntry;
+    }
+
+    // 2. Fallback local
+    const codes = this.getCodes();
+    if (codes.some(c => c.code === cleanCode)) {
+      throw new Error(`Mã "${cleanCode}" đã tồn tại trong hệ thống!`);
+    }
     codes.unshift(newEntry);
     this.saveCodes(codes);
+    await this.pushToServer('sync');
     return newEntry;
   }
 
-  addBulkCodes({ quantity = 5, prefix = 'VIP', status = 'SAFE', note = '' }) {
-    const codes = this.getCodes();
+  async addBulkCodesAsync({ quantity = 5, prefix = 'VIP', status = 'SAFE', note = '' }) {
     const createdList = [];
-    
     for (let i = 0; i < quantity; i++) {
       const randStr = Math.random().toString(36).substring(2, 6).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
       const codeStr = `${prefix ? prefix.trim().toUpperCase() + '-' : ''}${randStr}`;
@@ -243,17 +250,45 @@ class LocalDB {
         createdAt: new Date().toISOString(),
         note: note.trim() || `Tạo hàng loạt ${quantity} mã`
       };
-      codes.unshift(newEntry);
       createdList.push(newEntry);
     }
 
+    const res = await this.requestApi('/codes/add', 'POST', { bulk: true, codes: createdList });
+    if (res && res.codes) {
+      this.saveCodes(res.codes);
+      return createdList;
+    }
+
+    const codes = this.getCodes();
+    for (const item of createdList) {
+      codes.unshift(item);
+    }
     this.saveCodes(codes);
+    await this.pushToServer('sync');
     return createdList;
   }
 
-  deleteCode(id) {
+  async deleteCodeAsync(id) {
+    const res = await this.requestApi('/codes/delete', 'POST', { id });
+    if (res && res.codes) {
+      this.saveCodes(res.codes);
+      return;
+    }
     const codes = this.getCodes().filter(c => c.id !== id);
     this.saveCodes(codes);
+    await this.pushToServer('sync');
+  }
+
+  addCode(params) {
+    return this.addCodeAsync(params);
+  }
+
+  addBulkCodes(params) {
+    return this.addBulkCodesAsync(params);
+  }
+
+  deleteCode(id) {
+    return this.deleteCodeAsync(id);
   }
 
   deleteBulkCodes(ids = []) {

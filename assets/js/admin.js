@@ -119,8 +119,13 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // --- CODE CREATION ---
-  formSingleCode.addEventListener('submit', (e) => {
+  formSingleCode.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const btnSubmit = formSingleCode.querySelector('button[type="submit"]');
+    const origText = btnSubmit.innerHTML;
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = '⏳ Đang lưu lên máy chủ...';
+
     const status = singleStatus.value;
     let codeStr = singleName.value.trim().toUpperCase();
     const targetUser = singleUser.value.trim();
@@ -134,42 +139,53 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      const created = window.db.addCode({
+      const created = await window.db.addCodeAsync({
         code: codeStr,
         status,
         targetUser,
         note: note || (status === 'SAFE' ? 'Mã an toàn' : 'Dính mã ẩn')
       });
 
-      showToast(`Đã tạo mã thành công: ${created.code}`, 'success');
+      showToast(`Đã lưu mã lên Server thành công: ${created.code}`, 'success');
       singleName.value = '';
       singleUser.value = '';
       singleNote.value = '';
       loadDashboardData();
     } catch (err) {
       showToast(err.message, 'error');
+    } finally {
+      btnSubmit.disabled = false;
+      btnSubmit.innerHTML = origText;
     }
   });
 
-  formBulkCodes.addEventListener('submit', (e) => {
+  formBulkCodes.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const btnSubmit = formBulkCodes.querySelector('button[type="submit"]');
+    const origText = btnSubmit.innerHTML;
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = '⏳ Đang tạo và lưu lên máy chủ...';
+
     const status = bulkStatus.value;
-    const prefix = bulkPrefix.value.trim() || 'LLWIN';
+    const prefix = bulkPrefix.value.trim() || 'VIP';
     const quantity = parseInt(bulkQty.value, 10) || 5;
     const note = bulkNote.value.trim();
 
     try {
-      const list = window.db.addBulkCodes({
+      const list = await window.db.addBulkCodesAsync({
         quantity,
         prefix,
         status,
         note
       });
 
-      showToast(`Đã tạo thành công ${list.length} mã (${status === 'SAFE' ? 'Mã an toàn' : 'Dính mã ẩn'})!`, 'success');
+      showToast(`Đã lưu thành công ${list.length} mã lên Server!`, 'success');
       loadDashboardData();
     } catch (err) {
       showToast(err.message, 'error');
+    } finally {
+      btnSubmit.disabled = false;
+      btnSubmit.innerHTML = origText;
     }
   });
 
