@@ -28,7 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Modals
   const codeModalOverlay = document.getElementById('code-modal-overlay');
-  const modalUsernameInput = document.getElementById('modal-username-input');
   const codeInput = document.getElementById('code-input');
   const codeModalError = document.getElementById('code-modal-error');
   const btnCancelCode = document.getElementById('btn-cancel-code');
@@ -75,14 +74,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  if (modalUsernameInput) {
-    modalUsernameInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        codeInput.focus();
-      }
-    });
-  }
-
   btnCloseResult.addEventListener('click', () => {
     resultModalOverlay.style.display = 'none';
   });
@@ -123,22 +114,61 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   }
 
-  // Initialize static banner clicks
-  function initStaticBannerClicks() {
+  let lastRenderedBannersJson = '';
+
+  // Attach events to static HTML grid buttons immediately
+  attachGridEvents();
+
+  function attachGridEvents() {
     const buttons = bannersGrid.querySelectorAll('.grid-item');
     buttons.forEach((btn) => {
       btn.addEventListener('click', () => {
-        selectedHouseId = btn.dataset.bannerId;
+        selectedHouseId = btn.dataset.bannerId || 'llwin';
         updateActiveBannerSelection();
       });
     });
   }
 
-  initStaticBannerClicks();
-
   function renderBanners() {
-    // Buttons are already pre-rendered statically in HTML for instant loading on PC and Mobile!
-    updateActiveBannerSelection();
+    const banners = window.db.getBanners();
+    if (!banners || !Array.isArray(banners) || banners.length === 0) return;
+    
+    const currentJson = JSON.stringify(banners);
+
+    // Skip re-rendering if data is identical or static HTML is already loaded (Anti-Flicker)
+    if (bannersGrid.children.length > 0 && (currentJson === lastRenderedBannersJson || lastRenderedBannersJson === '')) {
+      lastRenderedBannersJson = currentJson;
+      updateActiveBannerSelection();
+      return;
+    }
+
+    lastRenderedBannersJson = currentJson;
+    bannersGrid.innerHTML = '';
+
+    banners.forEach((banner) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.bannerId = banner.id;
+      const isLlwin = banner.id === 'llwin';
+      const isActive = selectedHouseId === banner.id;
+
+      button.className = `grid-item ${isLlwin ? 'grid-item-llwin' : ''} ${isActive ? 'active' : ''}`;
+      button.setAttribute('aria-label', banner.name || `Banner ${banner.id}`);
+      button.title = `${banner.name || 'Nhà cái'} ${isLlwin ? '(Khuyên dùng - LLWIN)' : ''}`;
+
+      const imgSrc = banner.imageUrl || './uploads/banner_llwin.svg';
+
+      button.innerHTML = `
+        <img class="grid-item-image" src="${imgSrc}" alt="${banner.name || 'Banner'}" />
+      `;
+
+      button.addEventListener('click', () => {
+        selectedHouseId = banner.id;
+        updateActiveBannerSelection();
+      });
+
+      bannersGrid.appendChild(button);
+    });
   }
 
   function updateActiveBannerSelection() {
@@ -155,31 +185,24 @@ document.addEventListener('DOMContentLoaded', () => {
   function handleOpenCodePrompt(actionType) {
     if (isScanning) return;
 
+    const username = usernameInput.value.trim();
+    if (!username) {
+      alert('Vui lòng nhập tên tài khoản game cần xoá mã!');
+      usernameInput.focus();
+      return;
+    }
+
     if (!selectedHouseId) {
-      selectedHouseId = 'llwin';
-      updateActiveBannerSelection();
+      alert('Vui lòng chọn nhà cái trong danh sách phía dưới!');
+      return;
     }
 
     currentActionType = actionType;
     codeInput.value = '';
     codeModalError.style.display = 'none';
     codeModalError.textContent = '';
-
-    // Sync username from outside
-    const outerUsername = usernameInput.value.trim();
-    if (modalUsernameInput) {
-      modalUsernameInput.value = outerUsername;
-    }
-
     codeModalOverlay.style.display = 'flex';
-
-    setTimeout(() => {
-      if (modalUsernameInput && !modalUsernameInput.value.trim()) {
-        modalUsernameInput.focus();
-      } else {
-        codeInput.focus();
-      }
-    }, 60);
+    codeInput.focus();
   }
 
   function closeCodeModal() {
@@ -188,44 +211,14 @@ document.addEventListener('DOMContentLoaded', () => {
     codeModalError.style.display = 'none';
   }
 
-  // Close modal on click backdrop
-  codeModalOverlay.addEventListener('click', (e) => {
-    if (e.target === codeModalOverlay) {
-      closeCodeModal();
-    }
-  });
-
-  resultModalOverlay.addEventListener('click', (e) => {
-    if (e.target === resultModalOverlay) {
-      resultModalOverlay.style.display = 'none';
-    }
-  });
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      closeCodeModal();
-      resultModalOverlay.style.display = 'none';
-    }
-  });
-
   async function handleVerifyAndRun() {
-    const username = (modalUsernameInput ? modalUsernameInput.value.trim() : '') || usernameInput.value.trim();
+    const username = usernameInput.value.trim();
     const code = codeInput.value.trim().toUpperCase();
 
-    if (!username) {
-      showCodeModalError('Vui lòng nhập tên tài khoản game cần xoá mã!');
-      if (modalUsernameInput) modalUsernameInput.focus();
-      return;
-    }
-
     if (!code) {
-      showCodeModalError('Vui lòng nhập mã code xác thực!');
-      codeInput.focus();
+      showCodeModalError('Vui lòng nhập mã xác thực!');
       return;
     }
-
-    // Sync username back to outer input
-    usernameInput.value = username;
 
     try {
       // Verify code against server database (with real-time cross-device sync)
