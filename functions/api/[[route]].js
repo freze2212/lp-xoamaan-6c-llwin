@@ -1,8 +1,6 @@
 // Cloudflare Pages Functions Router for Tool Xoá Mã Nhà Cái
 // Handles /api/data, /api/codes/consume, /api/sync, etc. natively on Cloudflare Pages (*.pages.dev)
 
-const CLOUD_DB_URL = 'https://api.restful-api.dev/objects/ff8081819ff5b11001a04377347036e4';
-
 const INITIAL_BANNERS = [
   {
     id: 'llwin',
@@ -37,6 +35,7 @@ const INITIAL_BANNERS = [
 ];
 
 const INITIAL_CODES = [
+  { id: 'code-89732', code: '89732', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: '2026-08-27T00:00:00.000Z', note: 'Mã VIP 89732' },
   { id: 'code-123', code: '123', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: '2026-08-27T00:00:00.000Z', note: 'Mã an toàn test' },
   { id: 'code-1233', code: '1233', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: '2026-08-27T00:00:00.000Z', note: 'Mã an toàn test' },
   { id: 'code-dbc', code: 'DBC', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: '2026-08-27T00:00:00.000Z', note: 'Mã an toàn' },
@@ -70,33 +69,35 @@ let memoryDb = {
   updatedAt: new Date().toISOString()
 };
 
-async function getStoredDb(env) {
-  try {
-    const res = await fetch(CLOUD_DB_URL, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' },
-      cache: 'no-store'
-    });
-    if (res.ok) {
-      const json = await res.json();
-      if (json && json.data) {
-        if (Array.isArray(json.data.codes) && json.data.codes.length > 0) {
-          memoryDb.codes = json.data.codes;
-        }
-        if (Array.isArray(json.data.banners) && json.data.banners.length > 0) {
-          memoryDb.banners = json.data.banners;
-        }
-        if (json.data.config) {
-          memoryDb.config = { ...memoryDb.config, ...json.data.config };
-        }
-        if (json.data.adminCreds) {
-          memoryDb.adminCreds = { ...memoryDb.adminCreds, ...json.data.adminCreds };
-        }
-        return memoryDb;
-      }
+function findKv(env) {
+  if (!env || typeof env !== 'object') return null;
+  const ignore = new Set(['ASSETS', 'CF_PAGES', 'CF_PAGES_BRANCH', 'CF_PAGES_COMMIT_SHA', 'CF_PAGES_URL', 'ENVIRONMENT']);
+  if (env.XOAMA_KV && typeof env.XOAMA_KV.get === 'function' && typeof env.XOAMA_KV.put === 'function') return env.XOAMA_KV;
+  if (env.KV && typeof env.KV.get === 'function' && typeof env.KV.put === 'function') return env.KV;
+  if (env.DB && typeof env.DB.get === 'function' && typeof env.DB.put === 'function') return env.DB;
+  if (env.XOAMA && typeof env.XOAMA.get === 'function' && typeof env.XOAMA.put === 'function') return env.XOAMA;
+  for (const key of Object.keys(env)) {
+    if (!ignore.has(key) && env[key] && typeof env[key].get === 'function' && typeof env[key].put === 'function') {
+      return env[key];
     }
-  } catch (e) {
-    console.error('Cloud DB fetch error:', e);
+  }
+  return null;
+}
+
+async function getStoredDb(env) {
+  const kv = findKv(env);
+  if (kv) {
+    try {
+      const dataStr = await kv.get('db_data');
+      if (dataStr) {
+        const parsed = JSON.parse(dataStr);
+        if (parsed && Array.isArray(parsed.codes)) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error('KV get error:', e);
+    }
   }
   return memoryDb;
 }
@@ -104,27 +105,13 @@ async function getStoredDb(env) {
 async function saveStoredDb(env, db) {
   db.updatedAt = new Date().toISOString();
   memoryDb = db;
-
-  try {
-    const putRes = await fetch(CLOUD_DB_URL, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({
-        name: 'xoaip_codes_db',
-        data: {
-          codes: db.codes || INITIAL_CODES,
-          banners: db.banners || INITIAL_BANNERS,
-          config: db.config || DEFAULT_CONFIG,
-          adminCreds: db.adminCreds || DEFAULT_ADMIN
-        }
-      })
-    });
-    console.log('Cloud DB save status:', putRes.status);
-  } catch (e) {
-    console.error('Cloud DB save error:', e);
+  const kv = findKv(env);
+  if (kv) {
+    try {
+      await kv.put('db_data', JSON.stringify(db));
+    } catch (e) {
+      console.error('KV put error:', e);
+    }
   }
 }
 
@@ -209,41 +196,6 @@ export async function onRequest(context) {
     }
   }
 
-// Secret HMAC-like Checksum for Admin Code Verification
-function verifyAdminCodeSignature(code) {
-  const clean = (code || '').trim().toUpperCase();
-
-  // 1. Preloaded Admin Codes
-  const FIXED_ADMIN_CODES = new Set([
-    '123', '1233', '888', '999', '777', '666', '6868', '7979', '9999',
-    'VIP888', 'VIP777', 'SAFE888', 'WARN111', 'DBC', 'BRO', 'FREZE', 'LLWIN'
-  ]);
-  if (FIXED_ADMIN_CODES.has(clean)) {
-    return { valid: true, status: clean === 'WARN111' ? 'INFECTED' : 'SAFE' };
-  }
-
-  // 2. Secret Signature Format: LLWIN-(S|W)XXXXNNN (e.g. LLWIN-S7K9M245 or SAFE-XXXXNNN / WARN-XXXXNNN)
-  const regex = /^(LLWIN|VIP|SAFE|WARN)-(S|W)([A-Z0-9]{4})([0-9]{3})$/i;
-  const match = clean.match(regex);
-  if (match) {
-    const type = match[2].toUpperCase(); // 'S' for SAFE, 'W' for WARN/INFECTED
-    const seed = match[3].toUpperCase(); // 4 chars
-    const checksum = parseInt(match[4], 10);
-
-    let sum = 0;
-    for (let i = 0; i < seed.length; i++) {
-      sum += seed.charCodeAt(i) * (i + 3);
-    }
-    const expectedChecksum = (sum * 7 + 13) % 1000;
-
-    if (checksum === expectedChecksum) {
-      return { valid: true, status: type === 'W' ? 'INFECTED' : 'SAFE' };
-    }
-  }
-
-  return { valid: false, status: 'SAFE' };
-}
-
   // POST /api/codes/consume
   if (path === '/api/codes/consume' && request.method === 'POST') {
     try {
@@ -255,32 +207,46 @@ function verifyAdminCodeSignature(code) {
         return jsonResponse({ success: false, message: 'Vui lòng nhập mã code xác thực!' }, 400);
       }
 
-      // 1. Check local db list if synced
-      const codes = db.codes || INITIAL_CODES;
-      const foundCode = codes.find(c => c.code === cleanCode);
+      const codes = db.codes || [];
+      const foundIndex = codes.findIndex(c => c.code === cleanCode);
 
-      if (foundCode) {
-        return jsonResponse({
-          success: true,
-          status: foundCode.status || 'SAFE',
-          code: cleanCode,
-          usedBy: username || 'Khách'
-        });
+      if (foundIndex === -1) {
+        return jsonResponse({ success: false, message: 'Mã code không hợp lệ hoặc không tồn tại trên hệ thống!' }, 404);
       }
 
-      // 2. Check Secret Signature Algorithm
-      const sigCheck = verifyAdminCodeSignature(cleanCode);
-      if (sigCheck.valid) {
+      const codeObj = codes[foundIndex];
+      if (codeObj.isUsed) {
+        const usedTime = codeObj.usedAt ? new Date(codeObj.usedAt).toLocaleString('vi-VN') : 'trước đó';
+        const userText = codeObj.usedBy ? ` bởi tài khoản "${codeObj.usedBy}"` : '';
         return jsonResponse({
-          success: true,
-          status: sigCheck.status,
-          code: cleanCode,
-          usedBy: username || 'Khách'
-        });
+          success: false,
+          message: `Mã này đã được sử dụng${userText} vào lúc ${usedTime}. Mỗi mã chỉ được dùng 1 lần!`
+        }, 400);
       }
 
-      // 3. Reject all junk / unissued codes
-      return jsonResponse({ success: false, message: 'Mã code không hợp lệ hoặc không tồn tại trên hệ thống!' }, 404);
+      if (codeObj.targetUser && username && codeObj.targetUser.toLowerCase() !== username.toLowerCase()) {
+        return jsonResponse({
+          success: false,
+          message: `Mã này được cấp riêng cho tài khoản "${codeObj.targetUser}". Tài khoản "${username}" không có quyền sử dụng!`
+        }, 403);
+      }
+
+      // Mark code as used
+      codes[foundIndex] = {
+        ...codeObj,
+        isUsed: true,
+        usedAt: new Date().toISOString(),
+        usedBy: username || 'Khách'
+      };
+      db.codes = codes;
+      await saveStoredDb(env, db);
+
+      return jsonResponse({
+        success: true,
+        status: codeObj.status,
+        code: codeObj.code,
+        usedBy: codes[foundIndex].usedBy
+      });
     } catch (e) {
       return jsonResponse({ success: false, message: 'Lỗi xử lý yêu cầu' }, 500);
     }
@@ -293,19 +259,8 @@ function verifyAdminCodeSignature(code) {
       db.codes = db.codes || [];
       if (body.bulk && Array.isArray(body.codes)) {
         for (const item of body.codes) {
-          const cCode = (item.code || '').trim().toUpperCase();
-          if (cCode && !db.codes.some(c => c.code === cCode)) {
-            db.codes.unshift({
-              id: item.id || `code-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-              code: cCode,
-              status: item.status || 'SAFE',
-              targetUser: (item.targetUser || '').trim(),
-              isUsed: false,
-              usedAt: null,
-              usedBy: null,
-              createdAt: new Date().toISOString(),
-              note: item.note || ''
-            });
+          if (!db.codes.some(c => c.code === item.code)) {
+            db.codes.unshift(item);
           }
         }
       } else if (body.code) {
@@ -313,18 +268,7 @@ function verifyAdminCodeSignature(code) {
         if (db.codes.some(c => c.code === cleanCode)) {
           return jsonResponse({ success: false, message: `Mã "${cleanCode}" đã tồn tại trên hệ thống!` }, 400);
         }
-        const newCode = {
-          id: body.id || `code-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-          code: cleanCode,
-          status: body.status || 'SAFE',
-          targetUser: (body.targetUser || '').trim(),
-          isUsed: false,
-          usedAt: null,
-          usedBy: null,
-          createdAt: new Date().toISOString(),
-          note: body.note || (body.status === 'SAFE' ? 'Mã an toàn' : 'Dính mã ẩn')
-        };
-        db.codes.unshift(newCode);
+        db.codes.unshift(body);
       }
       await saveStoredDb(env, db);
       return jsonResponse({ success: true, codes: db.codes });

@@ -47,6 +47,7 @@ const INITIAL_BANNERS = [
 
 // Initial preloaded codes
 const INITIAL_CODES = [
+  { id: 'code-89732', code: '89732', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: new Date().toISOString(), note: 'Mã VIP 89732' },
   { id: 'code-123', code: '123', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: new Date().toISOString(), note: 'Mã an toàn test' },
   { id: 'code-1233', code: '1233', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: new Date().toISOString(), note: 'Mã an toàn test' },
   { id: 'code-dbc', code: 'DBC', status: 'SAFE', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: new Date().toISOString(), note: 'Mã an toàn' },
@@ -141,43 +142,24 @@ class LocalDB {
 
   async fetchFromServer() {
     try {
-      const res = await fetch('/api/data', { cache: 'no-store' });
-      if (!res.ok) return;
-      const data = await res.json();
-      let hasChanged = false;
-
-      if (data && data.banners && Array.isArray(data.banners) && data.banners.length > 0) {
-        const currentBanners = localStorage.getItem(DB_KEYS.BANNERS);
-        const newBannersStr = JSON.stringify(data.banners);
-        if (currentBanners !== newBannersStr) {
-          localStorage.setItem(DB_KEYS.BANNERS, newBannersStr);
-          hasChanged = true;
+      const json = await this.requestApi('/data', 'GET');
+      if (json && json.success) {
+        if (Array.isArray(json.codes)) {
+          localStorage.setItem(DB_KEYS.CODES, JSON.stringify(json.codes));
         }
-      }
-
-      if (data && data.codes && Array.isArray(data.codes)) {
-        const currentCodes = localStorage.getItem(DB_KEYS.CODES);
-        const newCodesStr = JSON.stringify(data.codes);
-        if (currentCodes !== newCodesStr) {
-          localStorage.setItem(DB_KEYS.CODES, newCodesStr);
-          hasChanged = true;
+        if (Array.isArray(json.banners)) {
+          localStorage.setItem(DB_KEYS.BANNERS, JSON.stringify(json.banners));
         }
-      }
-
-      if (data && data.config) {
-        const currentConf = localStorage.getItem(DB_KEYS.APP_CONFIG);
-        const newConfStr = JSON.stringify(data.config);
-        if (currentConf !== newConfStr) {
-          localStorage.setItem(DB_KEYS.APP_CONFIG, newConfStr);
-          hasChanged = true;
+        if (json.config) {
+          localStorage.setItem(DB_KEYS.APP_CONFIG, JSON.stringify(json.config));
         }
-      }
-
-      if (hasChanged) {
+        if (json.adminCreds) {
+          localStorage.setItem(DB_KEYS.ADMIN_CREDS, JSON.stringify(json.adminCreds));
+        }
         this.notifyUpdate();
       }
     } catch (e) {
-      // ignore
+      // Fallback to local
     }
   }
 
@@ -343,6 +325,9 @@ class LocalDB {
     try {
       const json = await this.requestApi('/codes/consume', 'POST', { code: cleanCode, username: username.trim() });
       if (json && json.success) {
+        // Update local storage to match
+        await this.fetchFromServer();
+
         return {
           success: true,
           status: json.status,
@@ -353,11 +338,13 @@ class LocalDB {
       if (json && !json.success && json.message) {
         throw new Error(json.message);
       }
+      // Fallback
       return this.verifyAndConsumeCode(cleanCode, username);
     } catch (err) {
-      if (err.message && err.message.includes('Mã code không hợp lệ')) {
+      if (err.message && (err.message.includes('đã được sử dụng') || err.message.includes('không hợp lệ') || err.message.includes('không có quyền'))) {
         throw err;
       }
+      // Fallback to local
       return this.verifyAndConsumeCode(cleanCode, username);
     }
   }
@@ -374,56 +361,48 @@ class LocalDB {
       throw new Error('Vui lòng nhập mã code xác thực!');
     }
 
-    const FIXED_CODES = new Set([
-      '123', '1233', '888', '999', '777', '666', '6868', '7979', '9999',
-      'VIP888', 'VIP777', 'SAFE888', 'WARN111', 'DBC', 'BRO', 'FREZE', 'LLWIN'
-    ]);
+    const codes = this.getCodes();
+    const foundIndex = codes.findIndex(c => c.code === cleanCode);
 
-    if (FIXED_CODES.has(cleanCode)) {
-      return {
-        success: true,
-        status: cleanCode === 'WARN111' ? 'INFECTED' : 'SAFE',
-        code: cleanCode,
-        usedBy: username.trim() || 'Khách'
-      };
+    if (foundIndex === -1) {
+      throw new Error('Mã code không hợp lệ hoặc không tồn tại trên hệ thống!');
     }
 
-    const regex = /^(LLWIN|VIP|SAFE|WARN)-(S|W)([A-Z0-9]{4})([0-9]{3})$/i;
-    const match = cleanCode.match(regex);
-    if (match) {
-      const type = match[2].toUpperCase();
-      const seed = match[3].toUpperCase();
-      const checksum = parseInt(match[4], 10);
+    const codeObj = codes[foundIndex];
 
-      let sum = 0;
-      for (let i = 0; i < seed.length; i++) {
-        sum += seed.charCodeAt(i) * (i + 3);
-      }
-      const expectedChecksum = (sum * 7 + 13) % 1000;
-
-      if (checksum === expectedChecksum) {
-        return {
-          success: true,
-          status: type === 'W' ? 'INFECTED' : 'SAFE',
-          code: cleanCode,
-          usedBy: username.trim() || 'Khách'
-        };
-      }
+    if (codeObj.isUsed) {
+      const usedTime = codeObj.usedAt ? new Date(codeObj.usedAt).toLocaleString('vi-VN') : 'trước đó';
+      const userText = codeObj.usedBy ? ` bởi tài khoản "${codeObj.usedBy}"` : '';
+      throw new Error(`Mã này đã được sử dụng${userText} vào lúc ${usedTime}. Mỗi mã chỉ được dùng 1 lần!`);
     }
 
-    throw new Error('Mã code không hợp lệ hoặc không tồn tại trên hệ thống!');
+    if (codeObj.targetUser && username && codeObj.targetUser.toLowerCase() !== username.trim().toLowerCase()) {
+      throw new Error(`Mã này được cấp riêng cho tài khoản "${codeObj.targetUser}". Tài khoản "${username}" không có quyền sử dụng!`);
+    }
+
+    // Mark as used
+    codes[foundIndex] = {
+      ...codeObj,
+      isUsed: true,
+      usedAt: new Date().toISOString(),
+      usedBy: username.trim() || 'Khách'
+    };
+
+    this.saveCodes(codes);
+
+    return {
+      success: true,
+      status: codeObj.status, // 'SAFE' or 'INFECTED'
+      code: codeObj.code,
+      usedBy: codes[foundIndex].usedBy
+    };
   }
 
   // --- BANNERS CRUD ---
   getBanners() {
     try {
       const data = localStorage.getItem(DB_KEYS.BANNERS);
-      const parsed = data ? JSON.parse(data) : null;
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
-      localStorage.setItem(DB_KEYS.BANNERS, JSON.stringify(INITIAL_BANNERS));
-      return INITIAL_BANNERS;
+      return data ? JSON.parse(data) : INITIAL_BANNERS;
     } catch (e) {
       return INITIAL_BANNERS;
     }
