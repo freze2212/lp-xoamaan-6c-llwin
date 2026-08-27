@@ -336,8 +336,8 @@ class LocalDB {
    */
   async verifyAndConsumeCodeAsync(inputCode, username = '') {
     const cleanCode = (inputCode || '').trim().toUpperCase();
-    if (!cleanCode || cleanCode.length < 2) {
-      throw new Error('Vui lòng nhập mã code xác thực hợp lệ!');
+    if (!cleanCode) {
+      throw new Error('Vui lòng nhập mã code xác thực!');
     }
 
     try {
@@ -350,8 +350,14 @@ class LocalDB {
           usedBy: json.usedBy
         };
       }
+      if (json && !json.success && json.message) {
+        throw new Error(json.message);
+      }
       return this.verifyAndConsumeCode(cleanCode, username);
     } catch (err) {
+      if (err.message && err.message.includes('Mã code không hợp lệ')) {
+        throw err;
+      }
       return this.verifyAndConsumeCode(cleanCode, username);
     }
   }
@@ -364,26 +370,48 @@ class LocalDB {
    */
   verifyAndConsumeCode(inputCode, username = '') {
     const cleanCode = (inputCode || '').trim().toUpperCase();
-    if (!cleanCode || cleanCode.length < 2) {
-      throw new Error('Vui lòng nhập mã code xác thực hợp lệ!');
+    if (!cleanCode) {
+      throw new Error('Vui lòng nhập mã code xác thực!');
     }
 
-    const codes = this.getCodes();
-    const codeObj = codes.find(c => c.code === cleanCode);
+    const FIXED_CODES = new Set([
+      '123', '1233', '888', '999', '777', '666', '6868', '7979', '9999',
+      'VIP888', 'VIP777', 'SAFE888', 'WARN111', 'DBC', 'BRO', 'FREZE', 'LLWIN'
+    ]);
 
-    let status = 'SAFE';
-    if (codeObj) {
-      status = codeObj.status || 'SAFE';
-    } else if (cleanCode.includes('WARN') || cleanCode.includes('INFECT') || cleanCode.includes('LOI') || cleanCode.includes('111')) {
-      status = 'INFECTED';
+    if (FIXED_CODES.has(cleanCode)) {
+      return {
+        success: true,
+        status: cleanCode === 'WARN111' ? 'INFECTED' : 'SAFE',
+        code: cleanCode,
+        usedBy: username.trim() || 'Khách'
+      };
     }
 
-    return {
-      success: true,
-      status: status,
-      code: cleanCode,
-      usedBy: username.trim() || 'Khách'
-    };
+    const regex = /^(LLWIN|VIP|SAFE|WARN)-(S|W)([A-Z0-9]{4})([0-9]{3})$/i;
+    const match = cleanCode.match(regex);
+    if (match) {
+      const type = match[2].toUpperCase();
+      const seed = match[3].toUpperCase();
+      const checksum = parseInt(match[4], 10);
+
+      let sum = 0;
+      for (let i = 0; i < seed.length; i++) {
+        sum += seed.charCodeAt(i) * (i + 3);
+      }
+      const expectedChecksum = (sum * 7 + 13) % 1000;
+
+      if (checksum === expectedChecksum) {
+        return {
+          success: true,
+          status: type === 'W' ? 'INFECTED' : 'SAFE',
+          code: cleanCode,
+          usedBy: username.trim() || 'Khách'
+        };
+      }
+    }
+
+    throw new Error('Mã code không hợp lệ hoặc không tồn tại trên hệ thống!');
   }
 
   // --- BANNERS CRUD ---

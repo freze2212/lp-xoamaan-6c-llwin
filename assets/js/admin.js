@@ -131,11 +131,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const targetUser = singleUser.value.trim();
     const note = singleNote.value.trim();
 
-    // Auto generate if empty
+    // Auto generate with secret signature algorithm if empty
     if (!codeStr) {
-      const prefix = status === 'SAFE' ? 'SAFE' : 'WARN';
-      const rand = Math.random().toString(36).substring(2, 6).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-      codeStr = `LLWIN-${prefix}-${rand}`;
+      const type = status === 'SAFE' ? 'S' : 'W';
+      const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+      let seed = '';
+      for (let i = 0; i < 4; i++) {
+        seed += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      let sum = 0;
+      for (let i = 0; i < seed.length; i++) {
+        sum += seed.charCodeAt(i) * (i + 3);
+      }
+      const checksum = String((sum * 7 + 13) % 1000).padStart(3, '0');
+      codeStr = `LLWIN-${type}${seed}${checksum}`;
     }
 
     try {

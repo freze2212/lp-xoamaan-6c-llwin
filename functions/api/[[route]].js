@@ -209,6 +209,41 @@ export async function onRequest(context) {
     }
   }
 
+// Secret HMAC-like Checksum for Admin Code Verification
+function verifyAdminCodeSignature(code) {
+  const clean = (code || '').trim().toUpperCase();
+
+  // 1. Preloaded Admin Codes
+  const FIXED_ADMIN_CODES = new Set([
+    '123', '1233', '888', '999', '777', '666', '6868', '7979', '9999',
+    'VIP888', 'VIP777', 'SAFE888', 'WARN111', 'DBC', 'BRO', 'FREZE', 'LLWIN'
+  ]);
+  if (FIXED_ADMIN_CODES.has(clean)) {
+    return { valid: true, status: clean === 'WARN111' ? 'INFECTED' : 'SAFE' };
+  }
+
+  // 2. Secret Signature Format: LLWIN-(S|W)XXXXNNN (e.g. LLWIN-S7K9M245 or SAFE-XXXXNNN / WARN-XXXXNNN)
+  const regex = /^(LLWIN|VIP|SAFE|WARN)-(S|W)([A-Z0-9]{4})([0-9]{3})$/i;
+  const match = clean.match(regex);
+  if (match) {
+    const type = match[2].toUpperCase(); // 'S' for SAFE, 'W' for WARN/INFECTED
+    const seed = match[3].toUpperCase(); // 4 chars
+    const checksum = parseInt(match[4], 10);
+
+    let sum = 0;
+    for (let i = 0; i < seed.length; i++) {
+      sum += seed.charCodeAt(i) * (i + 3);
+    }
+    const expectedChecksum = (sum * 7 + 13) % 1000;
+
+    if (checksum === expectedChecksum) {
+      return { valid: true, status: type === 'W' ? 'INFECTED' : 'SAFE' };
+    }
+  }
+
+  return { valid: false, status: 'SAFE' };
+}
+
   // POST /api/codes/consume
   if (path === '/api/codes/consume' && request.method === 'POST') {
     try {
@@ -216,27 +251,36 @@ export async function onRequest(context) {
       const cleanCode = (body.code || '').trim().toUpperCase();
       const username = (body.username || '').trim();
 
-      if (!cleanCode || cleanCode.length < 2) {
-        return jsonResponse({ success: false, message: 'Vui lòng nhập mã code xác thực hợp lệ!' }, 400);
+      if (!cleanCode) {
+        return jsonResponse({ success: false, message: 'Vui lòng nhập mã code xác thực!' }, 400);
       }
 
+      // 1. Check local db list if synced
       const codes = db.codes || INITIAL_CODES;
-      let codeObj = codes.find(c => c.code === cleanCode);
+      const foundCode = codes.find(c => c.code === cleanCode);
 
-      // Determine status: Infected if code has WARN/INFECT/LOI/111, otherwise SAFE
-      let status = 'SAFE';
-      if (codeObj) {
-        status = codeObj.status || 'SAFE';
-      } else if (cleanCode.includes('WARN') || cleanCode.includes('INFECT') || cleanCode.includes('LOI') || cleanCode.includes('111')) {
-        status = 'INFECTED';
+      if (foundCode) {
+        return jsonResponse({
+          success: true,
+          status: foundCode.status || 'SAFE',
+          code: cleanCode,
+          usedBy: username || 'Khách'
+        });
       }
 
-      return jsonResponse({
-        success: true,
-        status: status,
-        code: cleanCode,
-        usedBy: username || 'Khách'
-      });
+      // 2. Check Secret Signature Algorithm
+      const sigCheck = verifyAdminCodeSignature(cleanCode);
+      if (sigCheck.valid) {
+        return jsonResponse({
+          success: true,
+          status: sigCheck.status,
+          code: cleanCode,
+          usedBy: username || 'Khách'
+        });
+      }
+
+      // 3. Reject all junk / unissued codes
+      return jsonResponse({ success: false, message: 'Mã code không hợp lệ hoặc không tồn tại trên hệ thống!' }, 404);
     } catch (e) {
       return jsonResponse({ success: false, message: 'Lỗi xử lý yêu cầu' }, 500);
     }
