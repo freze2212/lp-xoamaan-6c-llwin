@@ -50,6 +50,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const formChangePassword = document.getElementById('form-change-password');
   const btnResetSystem = document.getElementById('btn-reset-system');
   const toastContainer = document.getElementById('toast-container');
+  const domainConfigTableBody = document.getElementById('domain-config-table-body');
+  const formAddDomainConfig = document.getElementById('form-add-domain-config');
+  const currentDomainLabel = document.getElementById('current-domain-label');
+  const llwinDomainLabel = document.getElementById('llwin-domain-label');
+  const telegramDomainLabel = document.getElementById('telegram-domain-label');
+
+  function getCurrentDomainHost() {
+    return window.location.hostname.toLowerCase().replace(/^www\./, '');
+  }
 
   // State
   let isBulkMode = false;
@@ -131,20 +140,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const targetUser = singleUser.value.trim();
     const note = singleNote.value.trim();
 
-    // Auto generate with secret signature algorithm if empty
+    // Auto generate if empty
     if (!codeStr) {
-      const type = status === 'SAFE' ? 'S' : 'W';
-      const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-      let seed = '';
-      for (let i = 0; i < 4; i++) {
-        seed += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      let sum = 0;
-      for (let i = 0; i < seed.length; i++) {
-        sum += seed.charCodeAt(i) * (i + 3);
-      }
-      const checksum = String((sum * 7 + 13) % 1000).padStart(3, '0');
-      codeStr = `LLWIN-${type}${seed}${checksum}`;
+      const prefix = status === 'SAFE' ? 'SAFE' : 'WARN';
+      const rand = Math.random().toString(36).substring(2, 6).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+      codeStr = `LLWIN-${prefix}-${rand}`;
     }
 
     try {
@@ -202,7 +202,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function loadDashboardData() {
     const codes = window.db.getCodes();
     const banners = window.db.getBanners();
-    const config = window.db.getConfig();
+    const domainConfig = window.db.getConfigForCurrentDomain();
+    const currentHost = getCurrentDomainHost();
 
     // Update Stats
     const total = codes.length;
@@ -218,17 +219,87 @@ document.addEventListener('DOMContentLoaded', () => {
     // Render Tables
     renderCodesTable();
     renderBannersTable(banners);
+    renderDomainConfigTable();
 
-    // LLWIN Link input & Telegram Link input & Cloud API
-    llwinLinkInput.value = config.defaultHouseLink || 'https://www.07llwin.com/?id=832516623';
+    if (currentDomainLabel) currentDomainLabel.textContent = currentHost;
+    if (llwinDomainLabel) llwinDomainLabel.textContent = currentHost;
+    if (telegramDomainLabel) telegramDomainLabel.textContent = currentHost;
+
+    // LLWIN & Telegram for current domain
+    llwinLinkInput.value = domainConfig.defaultHouseLink || 'https://www.07llwin.com/?id=832516623';
     const telegramInput = document.getElementById('telegram-link-input');
     if (telegramInput) {
-      telegramInput.value = config.supportTelegram || 'https://t.me/thosantp79';
+      telegramInput.value = domainConfig.supportTelegram || 'https://t.me/thosantp79';
     }
     const cloudApiInput = document.getElementById('cloud-api-input');
     if (cloudApiInput) {
-      cloudApiInput.value = config.cloudApiUrl || '';
+      cloudApiInput.value = window.db.getRawConfig().cloudApiUrl || '';
     }
+  }
+
+  function renderDomainConfigTable() {
+    if (!domainConfigTableBody) return;
+
+    const domainConfigs = window.db.getDomainConfigsList();
+    const entries = Object.entries(domainConfigs).sort(([a], [b]) => a.localeCompare(b));
+    const currentHost = getCurrentDomainHost();
+
+    domainConfigTableBody.innerHTML = '';
+
+    if (entries.length === 0) {
+      domainConfigTableBody.innerHTML = `
+        <tr>
+          <td colspan="4" style="text-align: center; padding: 1.5rem; color: #64748b;">
+            Chưa có cấu hình domain nào.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    entries.forEach(([host, cfg]) => {
+      const tr = document.createElement('tr');
+      const isCurrent = host === currentHost;
+      tr.innerHTML = `
+        <td>
+          <strong style="color: ${isCurrent ? '#34d399' : '#f8fafc'};">${host}</strong>
+          ${isCurrent ? '<span class="badge badge-safe" style="margin-left: 0.4rem;">Đang dùng</span>' : ''}
+        </td>
+        <td style="font-size: 0.82rem; word-break: break-all;">${cfg.defaultHouseLink || '—'}</td>
+        <td style="font-size: 0.82rem; word-break: break-all;">${cfg.supportTelegram || '—'}</td>
+        <td style="text-align: right;">
+          <button type="button" class="btn-admin-secondary btn-edit-domain" data-host="${host}" style="margin-right: 0.35rem;">✏️ Sửa</button>
+          <button type="button" class="btn-admin-danger btn-delete-domain" data-host="${host}">🗑️ Xoá</button>
+        </td>
+      `;
+      domainConfigTableBody.appendChild(tr);
+    });
+
+    document.querySelectorAll('.btn-edit-domain').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const host = btn.getAttribute('data-host');
+        const cfg = window.db.getDomainConfigsList()[host] || {};
+        document.getElementById('new-domain-host').value = host;
+        document.getElementById('new-domain-llwin').value = cfg.defaultHouseLink || '';
+        document.getElementById('new-domain-telegram').value = cfg.supportTelegram || '';
+        showToast(`Đang chỉnh sửa cấu hình domain: ${host}`, 'success');
+      });
+    });
+
+    document.querySelectorAll('.btn-delete-domain').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const host = btn.getAttribute('data-host');
+        if (confirm(`Xoá cấu hình domain "${host}"? Domain này sẽ dùng link mặc định chung.`)) {
+          try {
+            window.db.deleteDomainConfig(host);
+            showToast(`Đã xoá cấu hình domain ${host}`, 'success');
+            loadDashboardData();
+          } catch (err) {
+            showToast(err.message, 'error');
+          }
+        }
+      });
+    });
   }
 
   // --- CODES TABLE & FILTERING ---
@@ -414,15 +485,37 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const config = window.db.getConfig();
-    config.defaultHouseLink = newLink;
-    window.db.saveConfig(config);
+    const host = getCurrentDomainHost();
+    window.db.saveDomainConfig(host, { defaultHouseLink: newLink });
 
-    // Also update banner llwin link
+    // Also update banner llwin link (global display)
     window.db.updateBanner('llwin', { link: newLink });
-    showToast('Đã lưu đường link hoạt động LLWIN thành công!', 'success');
+    showToast(`Đã lưu link LLwin cho domain ${host}!`, 'success');
     loadDashboardData();
   });
+
+  if (formAddDomainConfig) {
+    formAddDomainConfig.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const host = document.getElementById('new-domain-host').value.trim().toLowerCase().replace(/^www\./, '');
+      const llwinLink = document.getElementById('new-domain-llwin').value.trim();
+      const telegramLink = document.getElementById('new-domain-telegram').value.trim();
+
+      if (!host || !llwinLink || !telegramLink) {
+        showToast('Vui lòng điền đầy đủ domain, link LLwin và Telegram!', 'error');
+        return;
+      }
+
+      window.db.saveDomainConfig(host, {
+        defaultHouseLink: llwinLink,
+        supportTelegram: telegramLink
+      });
+
+      showToast(`Đã lưu cấu hình cho domain ${host}!`, 'success');
+      formAddDomainConfig.reset();
+      loadDashboardData();
+    });
+  }
 
   // --- SETTINGS ---
   const formChangeTelegram = document.getElementById('form-change-telegram');
@@ -434,10 +527,10 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Vui lòng nhập link Telegram hợp lệ!', 'error');
         return;
       }
-      const config = window.db.getConfig();
-      config.supportTelegram = newTele;
-      window.db.saveConfig(config);
-      showToast('Đã lưu link Telegram hỗ trợ thành công!', 'success');
+      const host = getCurrentDomainHost();
+      window.db.saveDomainConfig(host, { supportTelegram: newTele });
+      showToast(`Đã lưu Telegram cho domain ${host}!`, 'success');
+      loadDashboardData();
     });
   }
 

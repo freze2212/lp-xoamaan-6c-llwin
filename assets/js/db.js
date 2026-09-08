@@ -66,11 +66,27 @@ const DEFAULT_ADMIN = {
   password: 'admin123'
 };
 
+const DEFAULT_DOMAIN_CONFIGS = {
+  'xoaipmang.com': {
+    defaultHouseLink: 'https://www.07llwin.com/?id=832516623',
+    supportTelegram: 'https://t.me/thosantp79'
+  },
+  'xoamaquocte.vip': {
+    defaultHouseLink: 'https://www.09llwin.com/?id=426892218',
+    supportTelegram: 'https://t.me/ANHKHOI833866'
+  }
+};
+
 const DEFAULT_CONFIG = {
   defaultHouseLink: 'https://www.07llwin.com/?id=832516623',
   supportTelegram: 'https://t.me/thosantp79',
-  siteTitle: '[ TOOL XOÁ MÃ ẨN ]'
+  siteTitle: '[ TOOL XOÁ MÃ ẨN ]',
+  domainConfigs: { ...DEFAULT_DOMAIN_CONFIGS }
 };
+
+function normalizeHostname(hostname) {
+  return String(hostname || '').toLowerCase().trim().replace(/^www\./, '');
+}
 
 class LocalDB {
   constructor() {
@@ -151,7 +167,14 @@ class LocalDB {
           localStorage.setItem(DB_KEYS.BANNERS, JSON.stringify(json.banners));
         }
         if (json.config) {
-          localStorage.setItem(DB_KEYS.APP_CONFIG, JSON.stringify(json.config));
+          const mergedConfig = {
+            ...json.config,
+            domainConfigs: {
+              ...DEFAULT_DOMAIN_CONFIGS,
+              ...(json.config.domainConfigs || {})
+            }
+          };
+          localStorage.setItem(DB_KEYS.APP_CONFIG, JSON.stringify(mergedConfig));
         }
         if (json.adminCreds) {
           localStorage.setItem(DB_KEYS.ADMIN_CREDS, JSON.stringify(json.adminCreds));
@@ -424,18 +447,82 @@ class LocalDB {
   }
 
   // --- CONFIG CRUD ---
-  getConfig() {
+  getRawConfig() {
     try {
       const data = localStorage.getItem(DB_KEYS.APP_CONFIG);
-      const conf = data ? JSON.parse(data) : DEFAULT_CONFIG;
+      const conf = data ? JSON.parse(data) : {};
       return {
         ...DEFAULT_CONFIG,
         ...conf,
-        supportTelegram: conf.supportTelegram || DEFAULT_CONFIG.supportTelegram
+        domainConfigs: {
+          ...DEFAULT_DOMAIN_CONFIGS,
+          ...(conf.domainConfigs || {})
+        }
       };
     } catch (e) {
-      return DEFAULT_CONFIG;
+      return {
+        ...DEFAULT_CONFIG,
+        domainConfigs: { ...DEFAULT_DOMAIN_CONFIGS }
+      };
     }
+  }
+
+  getConfig(hostname) {
+    if (hostname) {
+      return this.getConfigForDomain(hostname);
+    }
+    return this.getRawConfig();
+  }
+
+  getConfigForDomain(hostname) {
+    const conf = this.getRawConfig();
+    const host = normalizeHostname(hostname || (typeof window !== 'undefined' ? window.location.hostname : ''));
+    const domainEntry = conf.domainConfigs && conf.domainConfigs[host];
+
+    return {
+      ...conf,
+      defaultHouseLink: domainEntry?.defaultHouseLink || conf.defaultHouseLink || DEFAULT_CONFIG.defaultHouseLink,
+      supportTelegram: domainEntry?.supportTelegram || conf.supportTelegram || DEFAULT_CONFIG.supportTelegram,
+      activeDomain: host,
+      hasDomainOverride: !!domainEntry
+    };
+  }
+
+  getConfigForCurrentDomain() {
+    return this.getConfigForDomain(typeof window !== 'undefined' ? window.location.hostname : '');
+  }
+
+  getDomainConfigsList() {
+    return this.getRawConfig().domainConfigs || { ...DEFAULT_DOMAIN_CONFIGS };
+  }
+
+  saveDomainConfig(hostname, updates = {}) {
+    const conf = this.getRawConfig();
+    const host = normalizeHostname(hostname);
+    if (!host) {
+      throw new Error('Domain không hợp lệ!');
+    }
+
+    conf.domainConfigs = conf.domainConfigs || { ...DEFAULT_DOMAIN_CONFIGS };
+    conf.domainConfigs[host] = {
+      ...(conf.domainConfigs[host] || {}),
+      ...updates
+    };
+
+    this.saveConfig(conf);
+    this.pushToServer('sync');
+    return conf.domainConfigs[host];
+  }
+
+  deleteDomainConfig(hostname) {
+    const conf = this.getRawConfig();
+    const host = normalizeHostname(hostname);
+    if (!host || !conf.domainConfigs || !conf.domainConfigs[host]) {
+      throw new Error('Không tìm thấy cấu hình domain này!');
+    }
+    delete conf.domainConfigs[host];
+    this.saveConfig(conf);
+    this.pushToServer('sync');
   }
 
   saveConfig(config) {

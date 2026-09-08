@@ -39,37 +39,11 @@ function initLandingApp() {
   const resultText = document.getElementById('result-text');
   const resultActionArea = document.getElementById('result-action-area');
   const btnCloseResult = document.getElementById('btn-close-result');
+  const usernameError = document.getElementById('username-error');
 
-  // 1. Detect Client Environment
-  detectClientInfo();
-
-  // 2. Attach events to static HTML grid buttons immediately
-  attachGridEvents();
-
-  // 3. Render Banners from DB if available
-  renderBanners();
-
-  // Listen to DB updates
-  window.addEventListener('xoa_ma_db_changed', () => {
-    renderBanners();
-  });
-
-  // 4. Setup Button Event Listeners
-  if (btnDeleteCode) {
-    btnDeleteCode.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      handleOpenCodePrompt('delete');
-    });
-  }
-
-  if (btnChuyenXau) {
-    btnChuyenXau.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      handleOpenCodePrompt('chuyenXau');
-    });
-  }
+  // Attach button listeners FIRST (before anything that might throw)
+  bindActionButton(btnDeleteCode, 'delete');
+  bindActionButton(btnChuyenXau, 'chuyenXau');
 
   if (btnCancelCode) {
     btnCancelCode.addEventListener('click', (e) => {
@@ -101,13 +75,130 @@ function initLandingApp() {
     btnCloseResult.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      resultModalOverlay.style.display = 'none';
+      closeModal(resultModalOverlay);
     });
+  }
+
+  // Safe init — failures here won't block buttons above
+  try {
+    detectClientInfo();
+  } catch (e) {
+    console.error('detectClientInfo failed:', e);
+  }
+
+  try {
+    attachGridEvents();
+    renderBanners();
+  } catch (e) {
+    console.error('renderBanners failed:', e);
+  }
+
+  window.addEventListener('xoa_ma_db_changed', () => {
+    try {
+      renderBanners();
+    } catch (err) {
+      console.error('renderBanners on sync failed:', err);
+    }
+  });
+
+  if (usernameInput) {
+    usernameInput.addEventListener('input', () => hideUsernameError());
   }
 
   // --- FUNCTIONS ---
 
+  function bindActionButton(btn, actionType) {
+    if (!btn) return;
+    let lastTouchAt = 0;
+
+    const handler = (e) => {
+      if (e.type === 'click' && Date.now() - lastTouchAt < 600) return;
+      if (e.type === 'touchend') {
+        e.preventDefault();
+        lastTouchAt = Date.now();
+      }
+      e.stopPropagation();
+      if (usernameInput && document.activeElement === usernameInput) {
+        usernameInput.blur();
+      }
+      handleOpenCodePrompt(actionType);
+    };
+
+    btn.addEventListener('click', handler);
+    btn.addEventListener('touchend', handler, { passive: false });
+  }
+
+  function lockBodyScroll() {
+    document.body.classList.add('modal-open');
+  }
+
+  function unlockBodyScroll() {
+    if (
+      codeModalOverlay?.style.display !== 'flex' &&
+      resultModalOverlay?.style.display !== 'flex' &&
+      hackerOverlay?.style.display !== 'flex'
+    ) {
+      document.body.classList.remove('modal-open');
+    }
+  }
+
+  function openModal(overlayEl) {
+    if (!overlayEl) return;
+    lockBodyScroll();
+    overlayEl.style.display = 'flex';
+    requestAnimationFrame(() => {
+      overlayEl.scrollTop = 0;
+      window.scrollTo(0, 0);
+    });
+  }
+
+  function closeModal(overlayEl) {
+    if (!overlayEl) return;
+    overlayEl.style.display = 'none';
+    unlockBodyScroll();
+  }
+
+  function showUsernameError(msg) {
+    if (!usernameInput) return;
+    usernameInput.style.borderColor = '#ef4444';
+    usernameInput.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.4)';
+    usernameInput.classList.add('input-shake');
+
+    if (usernameError) {
+      usernameError.textContent = msg;
+      usernameError.hidden = false;
+    }
+
+    setTimeout(() => {
+      usernameInput.classList.remove('input-shake');
+    }, 500);
+
+    setTimeout(() => {
+      usernameInput.style.borderColor = '';
+      usernameInput.style.boxShadow = '';
+    }, 2200);
+
+    try {
+      usernameInput.focus({ preventScroll: false });
+      usernameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch (e) {
+      usernameInput.focus();
+    }
+  }
+
+  function hideUsernameError() {
+    if (usernameError) {
+      usernameError.textContent = '';
+      usernameError.hidden = true;
+    }
+    if (usernameInput) {
+      usernameInput.style.borderColor = '';
+      usernameInput.style.boxShadow = '';
+    }
+  }
+
   function detectClientInfo() {
+    if (!userDeviceEl || !userOsEl || !userBrowserEl || !userIpEl) return;
     // Detect device
     const ua = navigator.userAgent || '';
     const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
@@ -143,10 +234,8 @@ function initLandingApp() {
 
   let lastRenderedBannersJson = '';
 
-  // Attach events to static HTML grid buttons immediately
-  attachGridEvents();
-
   function attachGridEvents() {
+    if (!bannersGrid) return;
     const buttons = bannersGrid.querySelectorAll('.grid-item');
     buttons.forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -157,6 +246,7 @@ function initLandingApp() {
   }
 
   function renderBanners() {
+    if (!bannersGrid || !window.db || typeof window.db.getBanners !== 'function') return;
     const banners = window.db.getBanners();
     if (!banners || !Array.isArray(banners) || banners.length === 0) return;
     
@@ -214,16 +304,11 @@ function initLandingApp() {
 
     const username = usernameInput ? usernameInput.value.trim() : '';
     if (!username) {
-      usernameInput.focus();
-      usernameInput.style.borderColor = '#ef4444';
-      usernameInput.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.4)';
-      setTimeout(() => {
-        usernameInput.style.borderColor = '';
-        usernameInput.style.boxShadow = '';
-      }, 1800);
-      alert('Vui lòng nhập tên tài khoản game cần xoá mã!');
+      showUsernameError('⚠️ Vui lòng nhập tên tài khoản game trước khi xoá mã!');
       return;
     }
+
+    hideUsernameError();
 
     if (!selectedHouseId) {
       selectedHouseId = 'llwin';
@@ -231,19 +316,33 @@ function initLandingApp() {
     }
 
     currentActionType = actionType;
-    codeInput.value = '';
-    codeModalError.style.display = 'none';
-    codeModalError.textContent = '';
-    codeModalOverlay.style.display = 'flex';
+    if (codeInput) codeInput.value = '';
+    if (codeModalError) {
+      codeModalError.style.display = 'none';
+      codeModalError.textContent = '';
+    }
+
+    openModal(codeModalOverlay);
+
+    // Delay focus so iOS renders modal first (avoids invisible modal bug)
     setTimeout(() => {
-      codeInput.focus();
-    }, 100);
+      if (codeInput) {
+        try {
+          codeInput.focus({ preventScroll: true });
+        } catch (e) {
+          codeInput.focus();
+        }
+      }
+    }, 350);
   }
 
   function closeCodeModal() {
-    codeModalOverlay.style.display = 'none';
-    codeInput.value = '';
-    codeModalError.style.display = 'none';
+    closeModal(codeModalOverlay);
+    if (codeInput) codeInput.value = '';
+    if (codeModalError) {
+      codeModalError.style.display = 'none';
+      codeModalError.textContent = '';
+    }
   }
 
   async function handleVerifyAndRun() {
@@ -276,7 +375,7 @@ function initLandingApp() {
 
   async function runHackerScan(username, codeStatus) {
     isScanning = true;
-    hackerOverlay.style.display = 'flex';
+    openModal(hackerOverlay);
     hackerBody.innerHTML = '';
     hackerProgressBar.style.width = '0%';
     hackerProgressText.textContent = '0%';
@@ -313,7 +412,7 @@ function initLandingApp() {
     }
 
     await delay(350);
-    hackerOverlay.style.display = 'none';
+    closeModal(hackerOverlay);
     isScanning = false;
 
     // Show Result Popup based on codeStatus
@@ -321,7 +420,7 @@ function initLandingApp() {
   }
 
   function showFinalResultModal(username, status) {
-    const config = window.db.getConfig();
+    const config = window.db.getConfigForCurrentDomain();
     const targetLink = config.defaultHouseLink || 'https://www.07llwin.com/?id=832516623';
     const supportLink = config.supportTelegram || 'https://t.me/XoaMaNhaCai';
 
@@ -411,7 +510,7 @@ function initLandingApp() {
       resultActionArea.appendChild(btnSupport);
     }
 
-    resultModalOverlay.style.display = 'flex';
+    openModal(resultModalOverlay);
   }
 
   function delay(ms) {

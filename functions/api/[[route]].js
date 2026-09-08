@@ -49,10 +49,22 @@ const INITIAL_CODES = [
   { id: 'code-2', code: 'LLWIN-WARN-999', status: 'INFECTED', targetUser: '', isUsed: false, usedAt: null, usedBy: null, createdAt: '2026-08-26T00:00:00.000Z', note: 'Mã dính mã ẩn test' }
 ];
 
+const DEFAULT_DOMAIN_CONFIGS = {
+  'xoaipmang.com': {
+    defaultHouseLink: 'https://www.07llwin.com/?id=832516623',
+    supportTelegram: 'https://t.me/thosantp79'
+  },
+  'xoamaquocte.vip': {
+    defaultHouseLink: 'https://www.09llwin.com/?id=426892218',
+    supportTelegram: 'https://t.me/ANHKHOI833866'
+  }
+};
+
 const DEFAULT_CONFIG = {
   defaultHouseLink: 'https://www.07llwin.com/?id=832516623',
   supportTelegram: 'https://t.me/thosantp79',
-  siteTitle: '[ TOOL XOÁ MÃ ẨN ]'
+  siteTitle: '[ TOOL XOÁ MÃ ẨN ]',
+  domainConfigs: DEFAULT_DOMAIN_CONFIGS
 };
 
 const DEFAULT_ADMIN = {
@@ -184,7 +196,14 @@ export async function onRequest(context) {
         db.banners = body.banners;
       }
       if (body.config && typeof body.config === 'object') {
-        db.config = { ...db.config, ...body.config };
+        db.config = {
+          ...db.config,
+          ...body.config,
+          domainConfigs: {
+            ...(db.config?.domainConfigs || DEFAULT_DOMAIN_CONFIGS),
+            ...(body.config.domainConfigs || {})
+          }
+        };
       }
       if (body.adminCreds && typeof body.adminCreds === 'object') {
         db.adminCreds = { ...db.adminCreds, ...body.adminCreds };
