@@ -57,6 +57,10 @@ const DEFAULT_DOMAIN_CONFIGS = {
   'xoamaquocte.vip': {
     defaultHouseLink: 'https://www.09llwin.com/?id=426892218',
     supportTelegram: 'https://t.me/ANHKHOI833866'
+  },
+  'llwinu.us': {
+    defaultHouseLink: 'https://13llwin.com/?id=585339953',
+    supportTelegram: ''
   }
 };
 

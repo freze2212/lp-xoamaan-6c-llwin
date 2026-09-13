@@ -167,11 +167,17 @@
   "config": {
     "defaultHouseLink": "https://www.07llwin.com/?id=832516623",
     "supportTelegram": "https://t.me/thosantp79",
-    "siteTitle": "[ TOOL XOÁ MÃ ẨN ]"
+    "siteTitle": "[ TOOL XOÁ MÃ ẨN ]",
+    "domainConfigs": {
+      "llwinu.us": {
+        "defaultHouseLink": "https://13llwin.com/?id=585339953",
+        "supportTelegram": ""
+      }
+    }
   },
   "adminCreds": {
     "username": "admin",
     "password": "admin123"
   },
-  "updatedAt": "2026-08-26T07:32:08.976Z"
+  "updatedAt": "2026-09-13T12:15:41.735656+00:00"
 }
